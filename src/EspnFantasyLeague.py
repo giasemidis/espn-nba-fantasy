@@ -3,7 +3,7 @@ import requests
 from datetime import datetime
 import numpy as np
 import pandas as pd
-from utils.utils import advanced_stats_by_fantasy_team
+from .utils.utils import advanced_stats_by_fantasy_team
 
 
 class EspnFantasyLeague():
