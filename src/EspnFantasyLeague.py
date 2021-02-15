@@ -381,9 +381,9 @@ class EspnFantasyLeague():
             pois = np.random.poisson(lam=pois_stats,
                                      size=(n_reps, *pois_stats.shape))
             pois = np.maximum(0, pois)
-            gaus = np.random.normal(loc=gaus_stats, scale=0.1 * gaus_stats,
+            gaus = np.random.normal(loc=gaus_stats, scale=0.2 * gaus_stats,
                                     size=(n_reps, *gaus_stats.shape))
-            gaus = np.maximum(0, gaus)
+            gaus = np.clip(gaus, 0, 1)
             # total stats for the week
             aggr_pois_stats = pois.sum(axis=1)
             aggr_gaus_stats = gaus.mean(axis=1)
