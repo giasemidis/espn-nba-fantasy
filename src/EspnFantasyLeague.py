@@ -408,81 +408,7 @@ class EspnFantasyLeague():
         return perc_win_df
 
     def fantasy_team_schedule_count(self, fantasy_team_data, nba_schedule_df,
-                                    week, fantasy_team_abbr):
-        '''
-        Returns the number of games played each week by a fantasy team with the
-        *current* roster.
-        '''
-        # find the index of the fantasy team of interest
-        team_index = next((i for i, u in enumerate(fantasy_team_data['teams'])
-                           if u['abbrev'] == fantasy_team_abbr), None)
-
-        if team_index is None:
-            print('Error: Fantasy team not found')
-            return None
-        # isolate the team dictionary
-        team = fantasy_team_data['teams'][team_index]
-        # find the team ids of the players of the fantasy team.
-        teams_playing = [player['playerPoolEntry']['player']['proTeamId']
-                         for player in team['roster']['entries']
-                         if not player['playerPoolEntry']['player']['injured']]
-        # find the number of players in the same nba team
-        uniq, counts = np.unique(teams_playing, return_counts=True)
-        # make a dictionary with keys the nba team ids and values the number of
-        # players of the fantasy team in the nba team
-        teams_dict = dict(zip(uniq, counts))
-        # boolean mask of teams playing in the week of interest.
-        ii = ((nba_schedule_df.Week == week)
-              & (nba_schedule_df.Home_id.isin(teams_playing)
-                 | nba_schedule_df.Away_id.isin(teams_playing)))
-        # filter the data
-        temp = nba_schedule_df.loc[ii, ['Date', 'Home_id', 'Away_id']].copy()
-        # filter columns
-        temp2 = temp[['Home_id', 'Away_id']].copy()
-        # boolean mask of the teams that are not playing for the fantasy team
-        bb = ~(temp2.isin(teams_dict.keys())).values
-        # replace the teams that are not playing for the fantasy team with 0.
-        temp2[bb] = 0
-        # replace all other teams (those that play for the fantasy team) with
-        # the number of player that they play for
-        temp3 = temp2.replace(teams_dict).sum(axis=1).to_frame('Count')
-        # group by date and count
-        final_table = (pd.concat((temp, temp3), axis=1)
-                       .groupby(['Date'])[['Count']].sum())
-        # make valid columns (only 9 are available)
-        final_table['Count_valid'] = np.where(
-            final_table['Count'] > self.n_active_players, self.n_active_players,
-            final_table['Count'])
-        # make new column to show the unsused subs
-        final_table['Unused_subs'] = np.where(
-            final_table['Count'] > self.n_active_players,
-            final_table['Count'] - self.n_active_players, 0)
-        return final_table
-
-    def compare_schedules(self, fantasy_team_data, nba_schedule_df, week,
-                          fantasy_team1, fantasy_team2):
-        '''
-        Compares schedule of a given week of two fantasy teams
-        '''
-        # get the schedule table of the first team
-        table1 = self.fantasy_team_schedule_count(fantasy_team_data,
-                                                  nba_schedule_df,
-                                                  week, fantasy_team1)
-        # get the schedule table of the second team
-        table2 = self.fantasy_team_schedule_count(fantasy_team_data,
-                                                  nba_schedule_df,
-                                                  week, fantasy_team2)
-        # merge the two on the dates
-        table = table1.merge(table2, how='outer',
-                             right_index=True, left_index=True,
-                             suffixes=('-%s' % fantasy_team1,
-                                       '-%s' % fantasy_team2))
-        # return the total valid users too.
-        total = table.loc[:, table.columns.str.startswith('Count_valid')].sum()
-        return table, total
-
-    def fantasy_team_schedule_count_2(self, fantasy_team_data, nba_schedule_df,
-                                      fantasy_team_abbr):
+                                    fantasy_team_abbr):
         # get the roster of the fantasy team
         roster_df = self.get_roster_players_mean_stats(
             fantasy_team_data, fantasy_team_abbr)[['proTeamId', 'injuryStatus']]
@@ -504,19 +430,19 @@ class EspnFantasyLeague():
             groupby_df['Count'] - self.n_active_players, 0)
         return groupby_df
 
-    def compare_schedules_2(self, fantasy_team_data, nba_schedule_df,
-                            fantasy_team1, fantasy_team2):
+    def compare_schedules(self, fantasy_team_data, nba_schedule_df,
+                          fantasy_team1, fantasy_team2):
         '''
         Compares schedule of a given week of two fantasy teams
         '''
         # get the schedule table of the first team
-        table1 = self.fantasy_team_schedule_count_2(fantasy_team_data,
-                                                    nba_schedule_df,
-                                                    fantasy_team1)
+        table1 = self.fantasy_team_schedule_count(fantasy_team_data,
+                                                  nba_schedule_df,
+                                                  fantasy_team1)
         # get the schedule table of the second team
-        table2 = self.fantasy_team_schedule_count_2(fantasy_team_data,
-                                                    nba_schedule_df,
-                                                    fantasy_team2)
+        table2 = self.fantasy_team_schedule_count(fantasy_team_data,
+                                                  nba_schedule_df,
+                                                  fantasy_team2)
         # merge the two on the dates
         table = table1.merge(table2, how='outer',
                              right_index=True, left_index=True,
