@@ -32,8 +32,8 @@ Prior to a head-to-head matchup, a fantasy player needs to know the following de
 The number of games is an important piece of information, as many categories are aggregate totals of raw statistics, such as rebounds, assists, points, etc, hence the more the games, the merrier. In addition, players who do not fit in the roster and are forced to stay in the bench in a given day are a waste of resources, the user should consider making changes to optimise the schedule of his/her players during the matchup.
 
 Furthermore, we project the matchups outcome using two methods:
-1.   A naive projection method,
-2.   A simulation.
+1.   A naive projection method, which is based on each fantasy team's accumulate statistics throughout the season. However, this method has the following drawbacks. First, the current teams might have changed considerably compared to the past teams that achieved these statistics, due to trades or weekly roster changes. Second, NBA game schedule plays a crucial role in the outcome of a head-to-head matchup. This naive method does not consider the fantasy teams' current roster or schedule
+2.   A simulation. We run a simulation which replicates 100,000 realisations of the matchup by sampling from the players' mean statistics and following their schedule throught the week.
 
 # Post-round analysis
 Analysis of league results of past round.
