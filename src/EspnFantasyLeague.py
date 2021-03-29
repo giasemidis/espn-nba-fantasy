@@ -5,10 +5,19 @@ import numpy as np
 import pandas as pd
 from .utils.utils import advanced_stats_by_fantasy_team
 
+avg_stats_period_id_dict = {
+    '002021': 'season average',
+    '012021': 'last 7 days average',
+    '022021': 'last 15 days average',
+    '032021': 'last 30 days average',
+    '102021': "season's projections",
+    '002020': 'previous season average'
+}
+
 
 class EspnFantasyLeague():
     def __init__(self, league_id, season, n_active_players,
-                 url_fantasy, url_nba, cookies):
+                 url_fantasy, url_nba, cookies, stat_type_code='002021'):
         self.league_id = league_id
         self.season = season
         self.cookies = cookies
@@ -35,6 +44,7 @@ class EspnFantasyLeague():
         self.team_abbr_name_dict = {}
         self.division_id_name_dict = {}
         self.n_teams = None
+        self.stat_type_code = stat_type_code
 
         return
 
@@ -278,8 +288,7 @@ class EspnFantasyLeague():
         data_df = data_df.T.rename(columns=self.adv_stats_dict)
         return data_df
 
-    def get_roster_players_mean_stats(self, data, team_abbr,
-                                      stat_type_code='002021'):
+    def get_roster_players_mean_stats(self, data, team_abbr):
         '''
         Get the mean stats of all players in the current roster of fantasy team.
         `stat_type_code` can be on of the following:
@@ -291,6 +300,7 @@ class EspnFantasyLeague():
             * 002020 = previous season average
         '''
         cols = ['proTeamId', 'injuryStatus'] + list(self.fantasy_stats)
+        avg_stats_type = avg_stats_period_id_dict[self.stat_type_code]
 
         for teams in data['teams']:
             if teams['abbrev'] == team_abbr:
@@ -304,7 +314,11 @@ class EspnFantasyLeague():
             injury_status = player['playerPoolEntry']['player']['injuryStatus']
             pro_team_id = player['playerPoolEntry']['player']['proTeamId']
             for stat_type in player_stats:
-                if stat_type['id'] == stat_type_code:
+                if stat_type['id'] == self.stat_type_code:
+                    if 'averageStats' not in stat_type:
+                        print('Player %s does not have %s available data'
+                              % (player_name, avg_stats_type))
+                        continue
                     player_dict = stat_type['averageStats']
                     player_dict['Name'] = player_name
                     player_dict['injuryStatus'] = injury_status
@@ -352,7 +366,7 @@ class EspnFantasyLeague():
         return df_period
 
     def simulation(self, data, schedule_data, home_team_abbr, away_team_abbr,
-                   stat_type_code='002021', n_reps=100_000):
+                   n_reps=100_000):
         '''
         Simulates `n_reps` matchups between the home and away fantasy teams.
         The simulations samples the disrete statistical categories (e.g. REB,
@@ -372,8 +386,7 @@ class EspnFantasyLeague():
             return merge_df
 
         def simulate_stats(team_abbr):
-            team_avg_df = self.get_roster_players_mean_stats(
-                data, team_abbr, stat_type_code=stat_type_code)
+            team_avg_df = self.get_roster_players_mean_stats(data, team_abbr)
             merge_df = merge(team_avg_df, schedule_data)
 
             pois_stats = merge_df.loc[:, poison_stats].values
@@ -391,6 +404,8 @@ class EspnFantasyLeague():
                                         axis=1)
             return aggr_stats
 
+        print('Player stats type %s'
+              % avg_stats_period_id_dict[self.stat_type_code])
         gaussian_stats = ['FG%', 'FT%']
         poison_stats = ['3PM', 'REB', 'AST', 'STL', 'BLK', 'PTS', 'TO']
 
