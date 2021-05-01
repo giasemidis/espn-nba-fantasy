@@ -1,6 +1,7 @@
 import pytz
 import requests
 from datetime import datetime
+import json
 import numpy as np
 import pandas as pd
 from .utils.utils import advanced_stats_by_fantasy_team
@@ -36,8 +37,14 @@ class EspnFantasyLeague():
                                   '17': '3PM',
                                   '19': 'FG%', '20': 'FT%'}
         self.adv_stats_dict = {'40': 'Mins', '42': 'Games'}
-        self.fantasy_stats = ['FT%', 'FG%', 'PTS', '3PM', 'BLK',
-                              'STL', 'AST', 'REB', 'TO']
+        self.fantasy_stats = ['FG%', 'FT%', '3PM', 'REB',
+                              'AST', 'STL', 'BLK', 'TO', 'PTS']
+        # The following stats should follow the same order as the fantasy stats.
+        # First two are the FG made and attempts (corresponding to FG%)
+        # the next to are the FT made and attempts (corresponding to FT%)
+        # the rest should be identical.
+        self.simulation_stats = (['FGM', 'FGA', 'FTM', 'FTA']
+                                 + self.fantasy_stats[2:])
 
         self.team_id_abbr_dict = {}
         self.team_id_name_dict = {}
@@ -48,7 +55,7 @@ class EspnFantasyLeague():
 
         return
 
-    def get_espn_data(self, url_endpoint, endpoints=[], **kargs):
+    def get_espn_data(self, url_endpoint, endpoints=[], headers=None, **kargs):
         '''
         Fetch data from the ESPN:
         For fantasy league data the available end-points are:
@@ -64,9 +71,11 @@ class EspnFantasyLeague():
         * view=mMatchupScore
         * view=mStandings
         * view=mRoster
+        * view=kona_player_info
         '''
         params = {'view': endpoints, **kargs}
-        r = requests.get(url_endpoint, cookies=self.cookies, params=params)
+        r = requests.get(url_endpoint, cookies=self.cookies, params=params,
+                         headers=headers)
         if r.status_code != 200:
             raise ValueError('Error fetching the teams data')
         data = r.json()
@@ -81,6 +90,28 @@ class EspnFantasyLeague():
                                              'mMatchup'])
 
         self.get_league_team_division_settings(data)
+        return data
+
+    def get_players_data(self):
+        '''
+        '''
+        filters = {
+            "players": {
+                "filterStatus": {
+                    "value": ["FREEAGENT", "WAIVERS"]
+                },
+                "limit": 5000,
+                "sortDraftRanks": {
+                    "sortPriority": 100,
+                    "sortAsc": True,
+                    "value": "STANDARD"
+                }
+            }
+        }
+        headers = {'x-fantasy-filter': json.dumps(filters)}
+        data = self.get_espn_data(self.url_fantasy,
+                                  endpoints=['kona_player_info'],
+                                  headers=headers)
         return data
 
     def get_league_team_division_settings(self, data):
@@ -288,6 +319,25 @@ class EspnFantasyLeague():
         data_df = data_df.T.rename(columns=self.adv_stats_dict)
         return data_df
 
+    def get_player_stat(self, player_info):
+        avg_stats_type = avg_stats_period_id_dict[self.stat_type_code]
+        player_name = player_info['fullName']
+        player_stats = player_info['stats']
+        injury_status = player_info['injuryStatus']
+        pro_team_id = player_info['proTeamId']
+        for stat_type in player_stats:
+            if stat_type['id'] == self.stat_type_code:
+                if 'averageStats' not in stat_type:
+                    print('Player %s does not have %s available data'
+                          % (player_name, avg_stats_type))
+                    continue
+                player_dict = stat_type['averageStats']
+                player_dict['Name'] = player_name
+                player_dict['injuryStatus'] = injury_status
+                player_dict['proTeamId'] = pro_team_id
+                break
+        return player_dict
+
     def get_roster_players_mean_stats(self, data, team_abbr):
         '''
         Get the mean stats of all players in the current roster of fantasy team.
@@ -299,8 +349,7 @@ class EspnFantasyLeague():
             * 102021 = season's projections
             * 002020 = previous season average
         '''
-        cols = ['proTeamId', 'injuryStatus'] + list(self.fantasy_stats)
-        avg_stats_type = avg_stats_period_id_dict[self.stat_type_code]
+        cols = ['proTeamId', 'injuryStatus'] + list(self.simulation_stats)
 
         for teams in data['teams']:
             if teams['abbrev'] == team_abbr:
@@ -309,30 +358,22 @@ class EspnFantasyLeague():
 
         player_data = []
         for player in team_roster:
-            player_name = player['playerPoolEntry']['player']['fullName']
-            player_stats = player['playerPoolEntry']['player']['stats']
-            injury_status = player['playerPoolEntry']['player']['injuryStatus']
-            pro_team_id = player['playerPoolEntry']['player']['proTeamId']
-            for stat_type in player_stats:
-                if stat_type['id'] == self.stat_type_code:
-                    if 'averageStats' not in stat_type:
-                        print('Player %s does not have %s available data'
-                              % (player_name, avg_stats_type))
-                        continue
-                    player_dict = stat_type['averageStats']
-                    player_dict['Name'] = player_name
-                    player_dict['injuryStatus'] = injury_status
-                    player_dict['proTeamId'] = pro_team_id
-                    player_data.append(player_dict)
-                    break
+            player_info = player['playerPoolEntry']['player']
+            if ((player['lineupSlotId'] == 13)
+                    or (player_info['injuryStatus'] == 'OUT')):
+                # player is in IR or injured
+                continue
+            player_dict = self.get_player_stat(player_info)
+            player_data.append(player_dict)
 
         df = pd.DataFrame(player_data).set_index('Name').rename(
             columns=self.stat_id_abbr_dict).loc[:, cols]
+
         return df
 
     def get_schedule_data(self, since=None, to=None):
         ''''
-        Get the agme schedule of NBA team for all players between the
+        Get the game schedule of NBA team for all players between the
         `since` and `to` dates.
         `since` and `to` can be either None or in date format YYYY-MM-DD.
         '''
@@ -345,15 +386,18 @@ class EspnFantasyLeague():
             if proteam['abbrev'] == 'FA':
                 # skip the free agents
                 continue
+
             row = [proteam['id'], proteam['abbrev'],
                    proteam['location'] + ' ' + proteam['name']]
             # this is the data for each game
             for k, v in proteam['proGamesByScoringPeriod'].items():
                 us_datetime = datetime.fromtimestamp(v[0]['date'] // 1000,
                                                      tz=us_central)
-                datalist.append(row + [int(k), us_datetime])
+                datalist.append(row + [int(k), us_datetime,
+                                       v[0]['validForLocking']])
         df = pd.DataFrame(datalist,
-                          columns=['id', 'abbrev', 'team', 'day', 'date'])
+                          columns=['id', 'abbrev', 'team',
+                                   'day', 'date', 'validForLocking'])
         df = (df.sort_values(
               ['id', 'day', 'date'], ascending=[True, True, True])
               .reset_index(drop=True))
@@ -363,10 +407,15 @@ class EspnFantasyLeague():
         to = df['date'].iloc[-1] if to is None else pd.to_datetime(to)
         df_period = (df.loc[(df['date'] >= since) & (df['date'] <= to)]
                      .reset_index(drop=True))
+        # when validForLocking is False, it seems to be for suspended games.
+        df_period = df_period[df_period['validForLocking']]
         return df_period
 
     def simulation(self, data, schedule_data, home_team_abbr, away_team_abbr,
-                   n_reps=100_000):
+                   n_reps=100_000,
+                   current_score=None,
+                   ignore_players={'home': {}, 'away': {}},
+                   add_players={'home': {}, 'away': {}}):
         '''
         Simulates `n_reps` matchups between the home and away fantasy teams.
         The simulations samples the disrete statistical categories (e.g. REB,
@@ -385,42 +434,127 @@ class EspnFantasyLeague():
             merge_df = merge_df.loc[merge_df['injuryStatus'] != 'OUT', :]
             return merge_df
 
-        def simulate_stats(team_abbr):
+        def build_schedule(team_abbr, remove={}, add={}):
+            '''
+            Build the team's schedule and stats and apply scenarios by
+            removing and adding players.
+            '''
             team_avg_df = self.get_roster_players_mean_stats(data, team_abbr)
+
+            if add != {}:
+                cols = ['proTeamId', 'injuryStatus'] + list(self.fantasy_stats)
+                players_data = self.get_players_data()
+                player_stats_lst = []
+                for player_data in players_data['players']:
+                    if player_data['player']['fullName'] in add.keys():
+                        player_avg_stat_dict = self.get_player_stat(
+                            player_data['player'])
+                        player_stats_lst.append(player_avg_stat_dict)
+
+                df = pd.DataFrame(player_stats_lst).set_index('Name').rename(
+                    columns=self.stat_id_abbr_dict).loc[:, cols]
+                team_avg_df = pd.concat((team_avg_df, df))
+
+            # merge with scedule data
             merge_df = merge(team_avg_df, schedule_data)
 
-            pois_stats = merge_df.loc[:, poison_stats].values
-            gaus_stats = merge_df.loc[:, gaussian_stats].values
+            rmv_idx = np.zeros(merge_df.shape[0], dtype=bool)
+            for player_name, dates in remove.items():
+                # ignore players in specific dates.
+                dates_dt = [pd.Timestamp(date).date() for date in dates]
+                rmv_idx |= ((merge_df['Name'] == player_name)
+                            & (merge_df['date'].isin(dates_dt)))
+            for player_name, dates in add.items():
+                # ignore dates not considered from the added players
+                dates_dt = [pd.Timestamp(date).date() for date in dates]
+                rmv_idx |= ((merge_df['Name'] == player_name)
+                            & (~merge_df['date'].isin(dates_dt)))
+            merge_df = merge_df[~rmv_idx]
+            return merge_df
+
+        def simulate_schedule(team_schedule_stats_df):
+            pois_stats = team_schedule_stats_df.loc[:, poison_stats].values
             pois = np.random.poisson(lam=pois_stats,
                                      size=(n_reps, *pois_stats.shape))
             pois = np.maximum(0, pois)
-            gaus = np.random.normal(loc=gaus_stats, scale=0.2 * gaus_stats,
-                                    size=(n_reps, *gaus_stats.shape))
-            gaus = np.clip(gaus, 0, 1)
+            pois[..., fgm_idx] = np.minimum(pois[..., fgm_idx],
+                                            pois[..., fga_idx])
+            pois[..., ftm_idx] = np.minimum(pois[..., ftm_idx],
+                                            pois[..., fta_idx])
             # total stats for the week
             aggr_pois_stats = pois.sum(axis=1)
-            aggr_gaus_stats = gaus.mean(axis=1)
-            aggr_stats = np.concatenate((aggr_gaus_stats, aggr_pois_stats),
-                                        axis=1)
+
+            return aggr_pois_stats
+
+        def build_and_simulate(team_abbr, remove={}, add={}):
+            players_stats_schedule_df = build_schedule(team_abbr, remove, add)
+            aggr_stats = simulate_schedule(players_stats_schedule_df)
             return aggr_stats
+
+        def shot_percentage(array, made_idx, attmp_idx):
+            '''
+            Return the shot percentage from made and attempted shot index.
+            `array` must be of size `n_reps` x number of stats
+            '''
+            return (array[:, made_idx] / array[:, attmp_idx])[:, None]
 
         print('Player stats type %s'
               % avg_stats_period_id_dict[self.stat_type_code])
-        gaussian_stats = ['FG%', 'FT%']
-        poison_stats = ['3PM', 'REB', 'AST', 'STL', 'BLK', 'PTS', 'TO']
 
-        home_team_sim_stats = simulate_stats(home_team_abbr)
-        away_team_sim_stats = simulate_stats(away_team_abbr)
+        poison_stats = self.simulation_stats
+        fgm_idx = poison_stats.index('FGM')
+        fga_idx = poison_stats.index('FGA')
+        ftm_idx = poison_stats.index('FTM')
+        fta_idx = poison_stats.index('FTA')
 
-        perc_win = ((home_team_sim_stats > away_team_sim_stats).sum(axis=0)
+        home_team_sim_stats = build_and_simulate(home_team_abbr,
+                                                 ignore_players['home'],
+                                                 add_players['home'])
+        away_team_sim_stats = build_and_simulate(away_team_abbr,
+                                                 ignore_players['away'],
+                                                 add_players['away'])
+
+        if current_score is not None:
+            home_team_sim_stats = (
+                current_score.loc[home_team_abbr, poison_stats].values
+                + home_team_sim_stats
+            )
+            away_team_sim_stats = (
+                current_score.loc[away_team_abbr, poison_stats].values
+                + away_team_sim_stats
+            )
+
+        hm_fg = shot_percentage(home_team_sim_stats, fgm_idx, fga_idx)
+        hm_ft = shot_percentage(home_team_sim_stats, ftm_idx, fta_idx)
+        aw_fg = shot_percentage(away_team_sim_stats, fgm_idx, fga_idx)
+        aw_ft = shot_percentage(away_team_sim_stats, ftm_idx, fta_idx)
+
+        stats_idx = np.isin(self.simulation_stats, self.fantasy_stats)
+        home_team_sim_9_stats = np.concatenate(
+            (hm_fg, hm_ft, home_team_sim_stats[:, stats_idx]), axis=1)
+        away_team_sim_9_stats = np.concatenate(
+            (aw_fg, aw_ft, away_team_sim_stats[:, stats_idx]), axis=1)
+
+        home_mean_sim_stas = home_team_sim_9_stats.mean(axis=0)
+        away_mean_sim_stas = away_team_sim_9_stats.mean(axis=0)
+
+        mean_stats_matchup_df = pd.DataFrame({
+            home_team_abbr: home_mean_sim_stas,
+            away_team_abbr: away_mean_sim_stas
+        }, index=self.fantasy_stats)
+
+        perc_win = ((home_team_sim_9_stats > away_team_sim_9_stats).sum(axis=0)
                     / n_reps * 100)
-        perc_win_df = pd.DataFrame(perc_win,
-                                   index=gaussian_stats + poison_stats,
-                                   columns=['WinProb'])
+        perc_win_df = pd.DataFrame(perc_win, index=self.fantasy_stats,
+                                   columns=['HomeWinProb'])
         # fix for TO
         perc_win_df.loc['TO'] = 100 - perc_win_df.loc['TO']
 
-        return perc_win_df
+        # merge the two.
+        out_df = pd.merge(perc_win_df, mean_stats_matchup_df,
+                          left_index=True, right_index=True)
+
+        return out_df
 
     def fantasy_team_schedule_count(self, fantasy_team_data, nba_schedule_df,
                                     fantasy_team_abbr):
