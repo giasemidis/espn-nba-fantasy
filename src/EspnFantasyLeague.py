@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from .utils.utils import advanced_stats_by_fantasy_team
 
+
 avg_stats_period_id_dict = {
     '002021': 'season average',
     '012021': 'last 7 days average',
@@ -349,7 +350,7 @@ class EspnFantasyLeague():
             * 102021 = season's projections
             * 002020 = previous season average
         '''
-        cols = ['proTeamId', 'injuryStatus'] + list(self.simulation_stats)
+        cols = ['proTeamId', 'injuryStatus'] + self.simulation_stats
 
         for teams in data['teams']:
             if teams['abbrev'] == team_abbr:
@@ -442,7 +443,7 @@ class EspnFantasyLeague():
             team_avg_df = self.get_roster_players_mean_stats(data, team_abbr)
 
             if add != {}:
-                cols = ['proTeamId', 'injuryStatus'] + list(self.fantasy_stats)
+                cols = ['proTeamId', 'injuryStatus'] + self.simulation_stats
                 players_data = self.get_players_data()
                 player_stats_lst = []
                 for player_data in players_data['players']:
