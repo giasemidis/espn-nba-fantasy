@@ -461,16 +461,23 @@ class EspnFantasyLeague():
 
             rmv_idx = np.zeros(merge_df.shape[0], dtype=bool)
             for player_name, dates in remove.items():
-                # ignore players in specific dates.
-                dates_dt = [pd.Timestamp(date).date() for date in dates]
-                rmv_idx |= ((merge_df['Name'] == player_name)
-                            & (merge_df['date'].isin(dates_dt)))
+                if dates:
+                    # ignore players in specific dates
+                    dates_dt = [pd.Timestamp(date).date() for date in dates]
+                    rmv_idx |= ((merge_df['Name'] == player_name)
+                                & (merge_df['date'].isin(dates_dt)))
+                else:
+                    # ingore all games for the specified players
+                    rmv_idx |= (merge_df['Name'] == player_name)
             for player_name, dates in add.items():
                 # ignore dates not considered from the added players
-                dates_dt = [pd.Timestamp(date).date() for date in dates]
-                rmv_idx |= ((merge_df['Name'] == player_name)
-                            & (~merge_df['date'].isin(dates_dt)))
+                if dates:
+                    dates_dt = [pd.Timestamp(date).date() for date in dates]
+                    rmv_idx |= ((merge_df['Name'] == player_name)
+                                & (~merge_df['date'].isin(dates_dt)))
+
             merge_df = merge_df[~rmv_idx]
+
             return merge_df
 
         def simulate_schedule(team_schedule_stats_df):
