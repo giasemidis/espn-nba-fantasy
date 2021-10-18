@@ -8,12 +8,12 @@ from .utils.utils import advanced_stats_by_fantasy_team
 
 
 avg_stats_period_id_dict = {
-    '002021': 'season average',
-    '012021': 'last 7 days average',
-    '022021': 'last 15 days average',
-    '032021': 'last 30 days average',
-    '102021': "season's projections",
-    '002020': 'previous season average'
+    '002022': 'season average',
+    '012022': 'last 7 days average',
+    '022022': 'last 15 days average',
+    '032022': 'last 30 days average',
+    '102022': "season's projections",
+    '002021': 'previous season average'
 }
 
 
@@ -326,6 +326,7 @@ class EspnFantasyLeague():
         player_stats = player_info['stats']
         injury_status = player_info['injuryStatus']
         pro_team_id = player_info['proTeamId']
+        player_dict = {}
         for stat_type in player_stats:
             if stat_type['id'] == self.stat_type_code:
                 if 'averageStats' not in stat_type:
@@ -481,7 +482,9 @@ class EspnFantasyLeague():
             return merge_df
 
         def simulate_schedule(team_schedule_stats_df):
-            pois_stats = team_schedule_stats_df.loc[:, poison_stats].values
+            pois_stats = (
+                team_schedule_stats_df.loc[:, poison_stats].fillna(0).values
+            )
             pois = np.random.poisson(lam=pois_stats,
                                      size=(n_reps, *pois_stats.shape))
             pois = np.maximum(0, pois)
