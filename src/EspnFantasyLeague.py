@@ -19,7 +19,7 @@ avg_stats_period_id_dict = {
 
 class EspnFantasyLeague():
     def __init__(self, league_id, season, n_active_players,
-                 url_fantasy, url_nba, cookies, stat_type_code='002021'):
+                 url_fantasy, url_nba, cookies, stat_type_code='002022'):
         self.league_id = league_id
         self.season = season
         self.cookies = cookies
@@ -40,12 +40,14 @@ class EspnFantasyLeague():
         self.adv_stats_dict = {'40': 'Mins', '42': 'Games'}
         self.fantasy_stats = ['FG%', 'FT%', '3PM', 'REB',
                               'AST', 'STL', 'BLK', 'TO', 'PTS']
-        # The following stats should follow the same order as the fantasy stats.
-        # First two are the FG made and attempts (corresponding to FG%)
-        # the next to are the FT made and attempts (corresponding to FT%)
-        # the rest should be identical.
-        self.simulation_stats = (['FGM', 'FGA', 'FTM', 'FTA']
-                                 + self.fantasy_stats[2:])
+
+        # stats needed for simulation
+        self.stats_aux = ['FGM', 'FGA', 'FTM', 'FTA', 'FG%', 'FT%',
+                          '3PM', 'REB', 'AST', 'STL', 'BLK', 'TO', 'PTS']
+        # stats simulated with a poisson distribution
+        self.poisson_stats = ['FGA', 'FTA', '3PM', 'REB', 'AST',
+                              'STL', 'BLK', 'TO', 'PTS']
+        self.simulation_stats = self.poisson_stats + ['FGM', 'FTM']
 
         self.team_id_abbr_dict = {}
         self.team_id_name_dict = {}
@@ -351,7 +353,7 @@ class EspnFantasyLeague():
             * 102021 = season's projections
             * 002020 = previous season average
         '''
-        cols = ['proTeamId', 'injuryStatus'] + self.simulation_stats
+        cols = ['proTeamId', 'injuryStatus'] + self.stats_aux
 
         for teams in data['teams']:
             if teams['abbrev'] == team_abbr:
@@ -420,9 +422,11 @@ class EspnFantasyLeague():
                    add_players={'home': {}, 'away': {}}):
         '''
         Simulates `n_reps` matchups between the home and away fantasy teams.
-        The simulations samples the disrete statistical categories (e.g. REB,
-        AST, TO, PTS) from a Poisson distribution and the FG% FT% categories
-        from a Gaussian distribution.
+        The simulation samples the disrete statistical categories (FGA, FTA,
+        3PM, REB, AST, STL, BLK, TO, PTS) from a Poisson distribution.
+        FGM and FTM are estimated from the simulated attempts (bounded above)
+        and the average respective percentage (FG%, FT%). From made and attempts
+        the aggregated percentage is estimated.
 
         Currently, The simualtion does *not* account for
             * inconsistencies such as sampling five 3-pointers and 10 points.
@@ -444,7 +448,7 @@ class EspnFantasyLeague():
             team_avg_df = self.get_roster_players_mean_stats(data, team_abbr)
 
             if add != {}:
-                cols = ['proTeamId', 'injuryStatus'] + self.simulation_stats
+                cols = ['proTeamId', 'injuryStatus'] + self.stats_aux
                 players_data = self.get_players_data()
                 player_stats_lst = []
                 for player_data in players_data['players']:
@@ -481,19 +485,55 @@ class EspnFantasyLeague():
 
             return merge_df
 
+        def estimate_made_shots(attempts, perc):
+            """
+            Estimate made shots from attempts (made cannot be greater than
+            attempted shots) and the percentage of success.
+            """
+            made_shots = np.zeros(attempts.shape)
+            for atmp in np.unique(attempts):
+                if atmp == 0:
+                    continue
+                rows, cols = np.where(attempts == atmp)
+                r = np.random.uniform(size=(cols.shape[0], atmp))
+                made = r <= perc[cols][:, None]
+                made_shots[rows, cols] = made.sum(axis=-1)
+            return made_shots
+
         def simulate_schedule(team_schedule_stats_df):
-            pois_stats = (
-                team_schedule_stats_df.loc[:, poison_stats].fillna(0).values
+            poisson_stats = self.poisson_stats
+            pois_stats_arr = (
+                team_schedule_stats_df.loc[:, poisson_stats].fillna(0).values
             )
-            pois = np.random.poisson(lam=pois_stats,
-                                     size=(n_reps, *pois_stats.shape))
-            pois = np.maximum(0, pois)
-            pois[..., fgm_idx] = np.minimum(pois[..., fgm_idx],
-                                            pois[..., fga_idx])
-            pois[..., ftm_idx] = np.minimum(pois[..., ftm_idx],
-                                            pois[..., fta_idx])
-            # total stats for the week
-            aggr_pois_stats = pois.sum(axis=1)
+
+            poisson_samples = np.random.poisson(
+                lam=pois_stats_arr, size=(n_reps, *pois_stats_arr.shape)
+            )
+            poisson_samples = np.maximum(0, poisson_samples)
+
+            # Estimate made shots, bounded above from attempted shots
+            fga = poisson_samples[..., poisson_stats.index('FGA')]
+            fta = poisson_samples[..., poisson_stats.index('FTA')]
+
+            fgm = estimate_made_shots(
+                fga, team_schedule_stats_df.loc[:, 'FG%'].values
+            )
+            ftm = estimate_made_shots(
+                fta, team_schedule_stats_df.loc[:, 'FT%'].values
+            )
+
+            assert (fgm <= fga).all(), "FGM error"
+            assert (ftm <= fta).all(), "FTM error"
+
+            # make sure the simulated stats array have the headers ordered
+            self.simulation_stats = self.poisson_stats + ['FGM', 'FTM']
+            # concatenate poisson_samples with FGM and FTM
+            simulated_stats_arr = np.concatenate(
+                (poisson_samples, fgm[..., None], ftm[..., None]), axis=-1
+            )
+
+            # aggregate across time (week round)
+            aggr_pois_stats = simulated_stats_arr.sum(axis=1)
 
             return aggr_pois_stats
 
@@ -507,16 +547,18 @@ class EspnFantasyLeague():
             Return the shot percentage from made and attempted shot index.
             `array` must be of size `n_reps` x number of stats
             '''
+            assert (array[:, made_idx] <= array[:, attmp_idx]).all(), (
+                "made to attempts error"
+            )
             return (array[:, made_idx] / array[:, attmp_idx])[:, None]
 
         print('Player stats type %s'
               % avg_stats_period_id_dict[self.stat_type_code])
 
-        poison_stats = self.simulation_stats
-        fgm_idx = poison_stats.index('FGM')
-        fga_idx = poison_stats.index('FGA')
-        ftm_idx = poison_stats.index('FTM')
-        fta_idx = poison_stats.index('FTA')
+        fga_idx = self.simulation_stats.index('FGA')
+        fta_idx = self.simulation_stats.index('FTA')
+        fgm_idx = self.simulation_stats.index('FGM')
+        ftm_idx = self.simulation_stats.index('FTM')
 
         home_team_sim_stats = build_and_simulate(home_team_abbr,
                                                  ignore_players['home'],
@@ -527,11 +569,11 @@ class EspnFantasyLeague():
 
         if current_score is not None:
             home_team_sim_stats = (
-                current_score.loc[home_team_abbr, poison_stats].values
+                current_score.loc[home_team_abbr, self.simulation_stats].values
                 + home_team_sim_stats
             )
             away_team_sim_stats = (
-                current_score.loc[away_team_abbr, poison_stats].values
+                current_score.loc[away_team_abbr, self.simulation_stats].values
                 + away_team_sim_stats
             )
 
