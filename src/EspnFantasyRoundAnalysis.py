@@ -4,20 +4,29 @@ import pandas as pd
 from scipy.spatial.distance import pdist
 from scipy.spatial.distance import squareform
 
-from .utils.utils import fantasy_matchup_score, fun
+from .utils.utils import fantasy_matchup_score
 from .EspnFantasyLeague import EspnFantasyLeague
 
 
 class EspnFantasyRoundAnalysis(EspnFantasyLeague):
-    def __init__(self, round, scoring_period, league_id, season,
-                 n_active_players,
-                 url_fantasy, url_nba, cookies, stat_type_code='002022'):
+    def __init__(self, league_id, season, n_active_players,
+                 url_fantasy, url_nba, cookies, stat_type_code='002022',
+                 round=None, scoring_period=None):
         super().__init__(
             league_id, season, n_active_players, url_fantasy, url_nba, cookies,
             stat_type_code
         )
-        self.round = round
-        self.scoring_period = scoring_period
+
+        if round is None:
+            self.round = \
+                self.get_fantasy_teams_data()["schedule"][-1]["matchupPeriodId"]
+        else:
+            self.round = round
+        if scoring_period is None:
+            self.scoring_period = self.division_setting_data["scoringPeriodId"]
+        else:
+            self.scoring_period = scoring_period
+        print(self.round, self.scoring_period)
         self.fantasy_teams_data = None
         self.stats_all_rounds = None
         self.adv_stats_of_round = None
@@ -25,52 +34,16 @@ class EspnFantasyRoundAnalysis(EspnFantasyLeague):
         self.h2h_score_table = None
         self.aggr_round_scores = None
 
-    def get_stats_by_round(self):
-        '''
-        Get the total statistics for each fantasy team and each round/week.
-
-        It requires `mTeam`, `mRoster`, `mSettings`, `mMatchup`
-        '''
-
-        if self.fantasy_teams_data is None:
-            self.fantasy_teams_data = self.get_fantasy_teams_data()
-
-        stat_cols = sorted(self.stat_id_abbr_dict.keys())
-
-        datastore = []
-        for i, match in enumerate(self.fantasy_teams_data['schedule']):
-            if 'home' in match and 'away' in match:
-                tmp_home = fun(match, stat_cols, 'home')
-                tmp_away = fun(match, stat_cols, 'away')
-                if tmp_home is None or tmp_away is None:
-                    break
-                datastore.append(tmp_home)
-                datastore.append(tmp_away)
-            else:
-                print('Warning, match not found')
-
-        headers = ['Round', 'teamId', 'where', 'wins', 'losses', 'ties']
-        cols = headers + stat_cols
-        df = pd.DataFrame(datastore, columns=cols)
-        df.rename(columns=self.stat_id_abbr_dict, inplace=True)
-        df['teamId'] = df['teamId'].replace(self.team_id_abbr_dict)
-        df.rename(columns={'teamId': 'teamAbbr'}, inplace=True)
-        df.set_index('teamAbbr', inplace=True)
-
-        self.stats_all_rounds = df
-        return df
-
     def get_adv_stats_of_round(self):
         '''
         Filters stats by round (`week`)
         '''
         if self.stats_all_rounds is None:
-            table = self.get_stats_by_round()
+            table = self.get_fantasy_team_stats_per_round()
         else:
             table = self.stats_all_rounds
 
         mints_games_round_df = self.get_adv_stats_per_fantasy_team(
-            endpoints=['mMatchup', 'mMatchupScore'],
             scoring_period=self.scoring_period
         )
 

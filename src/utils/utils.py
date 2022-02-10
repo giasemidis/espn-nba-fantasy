@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from IPython import embed
 # from scipy.spatial.distance import pdist
 # from scipy.spatial.distance import squareform
 
@@ -49,8 +50,7 @@ import pandas as pd
 #             ranks_df[stat] = table[stat].argsort()[::-1].argsort().values + 1
 #     return ranks_df
 
-
-def fun(match, stat_cols, where='home'):
+def matchup_stats(match, stat_cols, where='home'):
     '''
     TODO: figure out what this function does and improve naming
     '''
