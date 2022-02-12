@@ -103,7 +103,7 @@ class EspnFantasyLeague():
         if self.fantasy_teams_data is None:
             self.fantasy_teams_data = self.get_espn_data(
                 self.url_fantasy,
-                endpoints=['mTeam', 'mSettings', 'mMatchup']
+                endpoints=['mTeam', 'mSettings', 'mMatchup', "mRoster"]
             )
 
         return self.fantasy_teams_data
@@ -293,45 +293,3 @@ class EspnFantasyLeague():
         print('Processing matchup round:', np.unique(matchupPeriodId))
         data_df = data_df.T.rename(columns=self.adv_stats_dict)
         return data_df
-
-    # def make_team_schedule_table(self, data):
-    #     '''
-    #     Returns the NBA games (hence the teams) schedule for the whole season
-    #     with additional info such as week, etc.
-    #     '''
-    #     us_central = pytz.timezone('US/Central')
-    #
-    #     teams_data = []
-    #     for team in data['settings']['proTeams']:
-    #         # loop over all teams
-    #         if team['abbrev'] == 'FA':
-    #             # skip the free agents
-    #             continue
-    #         # this is the data for each game
-    #         d = team['proGamesByScoringPeriod']
-    #         for u in d:
-    #             # loop over all games of the season for the team
-    #             if d[u] != []:
-    #                 tmp_data = [u, d[u][0]['date'], d[u][0]['homeProTeamId'],
-    #                             d[u][0]['awayProTeamId']]
-    #                 teams_data.append(tmp_data)
-    #     # make dataframe from the data
-    #     cols = ['Scoring Period', 'Date_int', 'Home_id', 'Away_id']
-    #     df = pd.DataFrame(teams_data, columns=cols)
-    #     # drop duplicates (each game has been counted twice once for every team)
-    #     df = df.drop_duplicates().reset_index(drop=True)
-    #     # sort by epoch time
-    #     df = df.sort_values('Date_int').reset_index(drop=True)
-    #     # convert epoch to UTC time
-    #     df['Date_utc'] = pd.to_datetime(df['Date_int'], unit='ms')
-    #     # convert time to US/Central time-zone
-    #     df['Date_usc'] = (df['Date_utc'].dt.tz_localize(pytz.utc)
-    #                       .dt.tz_convert(us_central))
-    #     # add column with teams abbreviations
-    #     df[['Home_abbr', 'Away_abbr']] = (df[['Home_id', 'Away_id']]
-    #                                       .replace(self.team_id_abbr_dict))
-    #     # add a column with the date only
-    #     df['Date'] = df['Date_usc'].dt.date
-    #     # add week of the year
-    #     df['Week'] = df['Date_usc'].dt.isocalendar().week
-    #     return df
