@@ -334,8 +334,8 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
         fgm_idx = self.simulation_stats.index('FGM')
         ftm_idx = self.simulation_stats.index('FTM')
 
-        home_schedule_stats = getattr(self, f"{self.home_team}_schedule_stats")
-        away_schedule_stats = getattr(self, f"{self.away_team}_schedule_stats")
+        home_schedule_stats = self.team_shcedule_df(self.home_team)
+        away_schedule_stats = self.team_shcedule_df(self.away_team)
         home_team_sim_stats = simulate_schedule(
             home_schedule_stats, self.poisson_stats, n_reps)
         away_team_sim_stats = simulate_schedule(
