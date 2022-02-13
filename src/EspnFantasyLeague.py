@@ -5,20 +5,14 @@ import json
 import numpy as np
 import pandas as pd
 from src.utils.utils import advanced_stats_by_fantasy_team, matchup_stats
+from src.utils.io_json import read_json
 
 
 class EspnFantasyLeague():
     """
     Class for data collection
     """
-    def __init__(self, league_id, season, n_active_players,
-                 url_fantasy, url_nba, cookies, stat_type_code='002022'):
-        self.league_id = league_id
-        self.season = season
-        self.cookies = cookies
-        self.n_active_players = n_active_players
-        self.url_fantasy = url_fantasy.format(season, league_id)
-        self.url_nba = url_nba.format(season)
+    def __init__(self, config_file="../config/config.json"):
 
         self.dtypes = {'FG%': float, 'FT%': float, '3PM': int, 'REB': int,
                        'AST': int, 'STL': int, 'BLK': int, 'TO': int,
@@ -42,7 +36,6 @@ class EspnFantasyLeague():
                               'STL', 'BLK', 'TO', 'PTS']
         self.simulation_stats = self.poisson_stats + ['FGM', 'FTM']
 
-        self.stat_type_code = stat_type_code
         self.team_id_abbr_dict = {}
         self.team_id_name_dict = {}
         self.team_abbr_name_dict = {}
@@ -51,6 +44,18 @@ class EspnFantasyLeague():
 
         self.division_setting_data = None
         self.fantasy_teams_data = None
+
+        settings = read_json('../config/config.json')
+        cookies = settings['cookies']
+        league_settings = settings['league']
+
+        self.league_id = league_settings["league_id"]
+        self.season = league_settings["season"]
+        self.n_active_players = league_settings["n_active_players"]
+        self.cookies = cookies
+        self.url_fantasy = settings['url']['fantasy_league'].format(
+            self.season, self.league_id)
+        self.url_nba = settings['url']['nba'].format(self.season)
 
         self.set_league_team_division_settings()
 

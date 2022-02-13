@@ -26,18 +26,15 @@ SCN_DEFAULT = {"remove": {}, "add": {}}
 
 class EspnFantasyMatchUp(EspnFantasyLeague):
     def __init__(self, round, home_team, away_team, start_date, end_date,
-                 league_id, season, n_active_players,
-                 url_fantasy, url_nba, cookies, stat_type_code='002022',
+                 config_file="../config/config.json", stat_type_code='002022',
                  home_scn_players=SCN_DEFAULT, away_scn_players=SCN_DEFAULT):
-        super().__init__(
-            league_id, season, n_active_players, url_fantasy, url_nba, cookies,
-            stat_type_code
-        )
+        super().__init__(config_file)
         self.round = round
         self.home_team = home_team
         self.away_team = away_team
         self.start_date = start_date
         self.end_date = end_date
+        self.stat_type_code = stat_type_code
 
         self.fantasy_teams_data = None
         self.nba_schedule_df = None

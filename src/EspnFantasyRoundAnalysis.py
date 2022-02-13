@@ -9,13 +9,9 @@ from .EspnFantasyLeague import EspnFantasyLeague
 
 
 class EspnFantasyRoundAnalysis(EspnFantasyLeague):
-    def __init__(self, league_id, season, n_active_players,
-                 url_fantasy, url_nba, cookies, stat_type_code='002022',
-                 round=None, scoring_period=None):
-        super().__init__(
-            league_id, season, n_active_players, url_fantasy, url_nba, cookies,
-            stat_type_code
-        )
+    def __init__(self, round=None, scoring_period=None,
+                 config_file="../config/config.json"):
+        super().__init__(config_file)
 
         if round is None:
             self.round = \
@@ -26,7 +22,7 @@ class EspnFantasyRoundAnalysis(EspnFantasyLeague):
             self.scoring_period = self.division_setting_data["scoringPeriodId"]
         else:
             self.scoring_period = scoring_period
-        print(self.round, self.scoring_period)
+
         self.fantasy_teams_data = None
         self.stats_all_rounds = None
         self.adv_stats_of_round = None
