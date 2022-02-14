@@ -15,11 +15,13 @@ class EspnFantasyRoundAnalysis(EspnFantasyLeague):
 
         if round is None:
             self.round = \
-                self.get_fantasy_teams_data()["schedule"][-1]["matchupPeriodId"]
+                self.division_setting_data['status']['currentMatchupPeriod'] - 1
         else:
             self.round = round
+
         if scoring_period is None:
-            self.scoring_period = self.division_setting_data["scoringPeriodId"]
+            self.scoring_period = \
+                self.division_setting_data["scoringPeriodId"] - 1
         else:
             self.scoring_period = scoring_period
 

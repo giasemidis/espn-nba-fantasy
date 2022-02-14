@@ -29,7 +29,11 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
                  config_file="../config/config.json", stat_type_code='002022',
                  home_scn_players=SCN_DEFAULT, away_scn_players=SCN_DEFAULT):
         super().__init__(config_file)
-        self.round = round
+        if round is None:
+            self.round = \
+                self.division_setting_data['status']['currentMatchupPeriod']
+        else:
+            self.round = round
         self.home_team = home_team
         self.away_team = away_team
         self.start_date = start_date

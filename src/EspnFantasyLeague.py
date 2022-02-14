@@ -63,19 +63,22 @@ class EspnFantasyLeague():
         '''
         Fetch data from the ESPN:
         For fantasy league data the available end-points are:
-        * view=mDraftDetail
-        * view=mLiveScoring
-        * view=mMatchup
-        * view=mPendingTransactions
-        * view=mPositionalRatings
-        * view=mSettings
-        * view=mTeam
-        * view=modular
-        * view=mNav
-        * view=mMatchupScore
-        * view=mStandings
-        * view=mRoster
-        * view=kona_player_info
+        * mDraftDetail
+        * mLiveScoring
+        * mMatchup
+        * mPendingTransactions
+        * mPositionalRatings
+        * mSettings
+        * mTeam
+        * modular
+        * mNav
+        * mMatchupScore
+        * mStandings
+        * mRoster
+        * mBoxscore
+        * kona_player_info
+        * player_wl
+
 
         For NBA teams data the available end-point is:
         * proTeamSchedules
