@@ -34,23 +34,91 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
                 self.division_setting_data['status']['currentMatchupPeriod']
         else:
             self.round = round
-        self.home_team = home_team
-        self.away_team = away_team
-        self.start_date = start_date
-        self.end_date = end_date
+        self._home_team = home_team
+        self._away_team = away_team
+        self._start_date = start_date
+        self._end_date = end_date
+        self._home_away_team_dict = {
+            home_team: "home_team",
+            away_team: "away_team"
+        }
         self.stat_type_code = stat_type_code
 
         self.fantasy_teams_data = None
         self.nba_schedule_df = None
         self.n_games_table_df = None
         self.current_score_df = None
+        self.home_team_scn_players = home_scn_players
+        self.away_team_scn_players = away_scn_players
+
+    @property
+    def home_team(self):
+        return self._home_team
+
+    @property
+    def away_team(self):
+        return self._away_team
+
+    @property
+    def start_date(self):
+        return self._start_date
+
+    @property
+    def end_date(self):
+        return self._end_date
+
+    @property
+    def stat_type_code(self):
+        return self._stat_type_code
+
+    @stat_type_code.setter
+    def stat_type_code(self, value):
+        """
+        If stat_type_code is updated by end-user, set these variables to None,
+        as they need to be recalculated.
+        """
+        self._home_team_roster_stats = None
+        self._away_team_roster_stats = None
+        self._home_team_schedule_stats = None
+        self._away_team_schedule_stats = None
         self.simulation_result = None
-        setattr(self, f"{home_team}_roster_stats", None)
-        setattr(self, f"{away_team}_roster_stats", None)
-        setattr(self, f"{home_team}_schedule_stats", None)
-        setattr(self, f"{away_team}_schedule_stats", None)
-        setattr(self, f"{home_team}_scn_players", home_scn_players)
-        setattr(self, f"{away_team}_scn_players", away_scn_players)
+        self._stat_type_code = value
+
+    @property
+    def home_team_roster_stats(self):
+        if self._home_team_roster_stats is None:
+            print("getting roster stats for ", self.home_team)
+            self._home_team_roster_stats = self.extract_roster_mean_stats(
+                self.home_team
+            )
+        return self._home_team_roster_stats
+
+    @property
+    def away_team_roster_stats(self):
+        if self._away_team_roster_stats is None:
+            print("getting roster stats for ", self.away_team)
+            self._away_team_roster_stats = self.extract_roster_mean_stats(
+                self.away_team
+            )
+        return self._away_team_roster_stats
+
+    @property
+    def home_team_schedule_stats(self):
+        if self._home_team_schedule_stats is None:
+            print("getting schedule stats for ", self.home_team)
+            self._home_team_schedule_stats = self.team_shcedule_df(
+                self.home_team
+            )
+        return self._home_team_schedule_stats
+
+    @property
+    def away_team_schedule_stats(self):
+        if self._away_team_schedule_stats is None:
+            print("getting schedule stats for ", self.away_team)
+            self._away_team_schedule_stats = self.team_shcedule_df(
+                self.away_team
+            )
+        return self._away_team_schedule_stats
 
     def h2h_season_stats_comparison(self):
         '''
@@ -89,7 +157,7 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
 
     def get_current_score(self):
         """
-        TODO
+        Get the current score of the match-up under progression.
         """
         if (self.current_score_df is not None):
             return self.current_score_df
@@ -170,11 +238,6 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
             * 102021 = season's projections
             * 002020 = previous season average
         '''
-
-        team_roster_stats = getattr(self, f"{team_abbr}_roster_stats")
-        if team_roster_stats is not None:
-            return team_roster_stats
-
         data = self.get_fantasy_teams_data()
 
         cols = ['proTeamId', 'lineupSlotId', 'injuryStatus'] + self.stats_aux
@@ -188,27 +251,28 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
         for player in team_roster:
             player_info = player['playerPoolEntry']['player']
             player_dict = extract_player_stat(
-                player_info, self.stat_type_code)
+                player_info, self._stat_type_code)
             player_dict.update({"lineupSlotId": player['lineupSlotId']})
             player_data.append(player_dict)
 
         df = pd.DataFrame(player_data).set_index('Name').rename(
             columns=self.stat_id_abbr_dict).loc[:, cols]
 
-        setattr(self, f"{team_abbr}_roster_stats", df)
-
         return df
 
     def team_shcedule_df(self, team):
         """
-        TODO
-        """
-        schedule_stats = getattr(self, f"{team}_schedule_stats")
-        if schedule_stats is not None:
-            return schedule_stats
+        Merge the NBA teams' schedule with the EPSN team roster to get the
+        ESPN team's schedule.
 
+        Add/remove players based on scenarios.
+        """
         nba_schedule_df = self.get_schedule_data()
-        roster_df = self.extract_roster_mean_stats(team)
+
+        roster_df = getattr(
+            self, f"{self._home_away_team_dict[team]}_roster_stats"
+        )
+
         # merge based on the pro NBA team ID
         merged_df = (
             roster_df.reset_index()
@@ -220,29 +284,46 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
         merged_df = pd.concat((merged_df, added_players_df), axis=0)
         merged_df = self.remove_scn_players(merged_df, team)
 
-        # ignore injured players or players in the IR list
-        keep_indx = (merged_df['injuryStatus'] != 'OUT') & \
+        team_type_scn_players = f"{self._home_away_team_dict[team]}_scn_players"
+        add = getattr(self, team_type_scn_players)["add"]
+        for player_name, dates in add.items():
+            if player_name in roster_df.index:
+                mask = merged_df.index == player_name
+                if dates:
+                    dates = pd.to_datetime(dates).date
+                    mask &= merged_df["date"].isin(dates).values
+                merged_df.loc[mask, "injuryStatus"] = "ACTIVE"
+                merged_df.loc[mask, "lineupSlotId"] = 14
+
+        # ignore injured players or players in the IR list, but keep players in
+        # the add dictionary. E.g. if Player A is injured but we want to include
+        # include him in the roster, we force it here.
+        keep_indx = (merged_df['injuryStatus'] != 'OUT') &\
             (merged_df['lineupSlotId'] != 13)
         merged_df = merged_df[keep_indx]
 
-        setattr(self, f"{team}_schedule_stats", merged_df)
         return merged_df
 
     def add_scn_players(self, team):
         cols = ['Name', 'proTeamId', 'injuryStatus'] + self.stats_aux
-        add = getattr(self, f"{team}_scn_players")["add"]
+        team_type_scn_players = f"{self._home_away_team_dict[team]}_scn_players"
+        add = getattr(self, team_type_scn_players)["add"]
         out_data = []
+        team_type_rstats = f"{self._home_away_team_dict[team]}_roster_stats"
         if add:
             nba_schedule_df = self.get_schedule_data()
             players_data = self.get_players_data()
             player_stats_lst = []
             for player_name, dates in add.items():
+
+                if player_name in getattr(self, team_type_rstats).index:
+                    print(f"Player {player_name} already in roster")
+                    continue
                 for player_data in players_data['players']:
                     if player_data['player']['fullName'] in player_name:
                         player_avg_stat_dict = extract_player_stat(
-                            player_data['player'], self.stat_type_code)
+                            player_data['player'], self._stat_type_code)
                         player_stats_lst.append(player_avg_stat_dict)
-                        # print(player_avg_stat_dict)
                         break
                 else:
                     print(f"Player {player_name} not found")
@@ -260,6 +341,8 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
                     ).set_index('Name')
                 )
                 out_data.append(merged_df)
+
+        if out_data:
             df = pd.concat(out_data, axis=0)
         else:
             df = pd.DataFrame([])
@@ -268,7 +351,8 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
     def remove_scn_players(self, schedule_stats, team):
         # Now remove players unwanted players dates
         rmv_idx = np.zeros(schedule_stats.shape[0], dtype=bool)
-        remove = getattr(self, f"{team}_scn_players")["remove"]
+        team_type_scn_players = f"{self._home_away_team_dict[team]}_scn_players"
+        remove = getattr(self, team_type_scn_players)["remove"]
         for player_name, dates in remove.items():
             if dates:
                 # ignore players in specific dates
@@ -289,8 +373,8 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
         if self.n_games_table_df is not None:
             return self.n_games_table_df
 
-        home_team_schedule = self.team_shcedule_df(self.home_team)
-        away_team_schedule = self.team_shcedule_df(self.away_team)
+        home_team_schedule = self.home_team_schedule_stats
+        away_team_schedule = self.away_team_schedule_stats
 
         # get the schedule table of the first team
         home_table = fantasy_team_schedule_count(
@@ -328,15 +412,15 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
         '''
 
         print('Player stats type %s'
-              % STAT_PERIOD_DICT[self.stat_type_code])
+              % STAT_PERIOD_DICT[self._stat_type_code])
 
         fga_idx = self.simulation_stats.index('FGA')
         fta_idx = self.simulation_stats.index('FTA')
         fgm_idx = self.simulation_stats.index('FGM')
         ftm_idx = self.simulation_stats.index('FTM')
 
-        home_schedule_stats = self.team_shcedule_df(self.home_team)
-        away_schedule_stats = self.team_shcedule_df(self.away_team)
+        home_schedule_stats = self.home_team_schedule_stats
+        away_schedule_stats = self.away_team_schedule_stats
         home_team_sim_stats = simulate_schedule(
             home_schedule_stats, self.poisson_stats, n_reps)
         away_team_sim_stats = simulate_schedule(

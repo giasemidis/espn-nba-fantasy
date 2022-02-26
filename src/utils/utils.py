@@ -4,7 +4,10 @@ import pandas as pd
 
 def matchup_stats(match, stat_cols, where='home'):
     '''
-    TODO: figure out what this function does and improve naming
+    Extracts the specified statistics (`stat_cols) for the input fantasy team
+    (`where`) for a particular match-up (`match`).
+
+    `match` is a dictionary returned from the ESPN API.
     '''
     matchperiodid = match['matchupPeriodId']
     there = match[where]
@@ -53,7 +56,8 @@ def advanced_stats_by_fantasy_team(data, stat_codes):
 
 def extract_player_stat(player_info, stat_type_code):
     """
-    TODO
+    A fucntion that extracts the player's stats from the given stat type code.
+    `player_info` is a dictionary as returned from the ESPN API.
     """
     player_name = player_info['fullName']
     player_stats = player_info['stats']
@@ -63,7 +67,8 @@ def extract_player_stat(player_info, stat_type_code):
     for stat_type in player_stats:
         if stat_type['id'] == stat_type_code:
             if 'averageStats' not in stat_type:
-                print('Player %s does not have requested available data')
+                print(f'Player {player_name} does not have requested '
+                      + 'data')
                 continue
             player_dict = stat_type['averageStats']
             player_dict['Name'] = player_name
@@ -75,7 +80,10 @@ def extract_player_stat(player_info, stat_type_code):
 
 def fantasy_team_schedule_count(roster_schedule_df, n_active_players):
     """
-    TODO
+    Counts the number of players available for each day of the match-up.
+    It also returns the number of unused players based on the leagues' cap.
+    Caution: It does not count for players not fitting becuase of their
+    position, 8 guards.
     """
     # count number of games per day of the fantasy roster team
     groupby_df = (roster_schedule_df.groupby(['date']).count()['team']
