@@ -303,6 +303,6 @@ class EspnFantasyLeague():
                 df.rename(columns={0: home_abbr, 1: away_abbr}, inplace=True)
                 data_list.append(df)
         data_df = pd.concat(data_list, axis=1)
-        logger.info('Processing matchup round:', np.unique(matchupPeriodId))
+        logger.info(f"Processing matchup round: {np.unique(matchupPeriodId)}")
         data_df = data_df.T.rename(columns=self.adv_stats_dict)
         return data_df
