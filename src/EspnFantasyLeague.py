@@ -2,8 +2,15 @@ import requests
 import json
 import numpy as np
 import pandas as pd
-from src.utils.utils import advanced_stats_by_fantasy_team, matchup_stats
-from src.utils.io_json import read_json
+from .utils.utils import (
+    advanced_stats_by_fantasy_team,
+    matchup_stats
+)
+from .utils.io_json import read_json
+from .utils.get_logger import get_logger
+
+
+logger = get_logger(__name__)
 
 
 class EspnFantasyLeague():
@@ -159,9 +166,9 @@ class EspnFantasyLeague():
             for u in data['settings']['scheduleSettings']['divisions']
         }
         if len(self.division_id_name_dict) > 1:
-            print('There are more than 1 divisions')
+            logger.warning('There are more than 1 divisions')
         self.n_teams = len(data['teams'])
-        print('%d teams participating' % self.n_teams)
+        logger.info('%d teams participating' % self.n_teams)
         return
 
     def make_stat_table(self):
@@ -243,7 +250,7 @@ class EspnFantasyLeague():
                 datastore.append(tmp_home)
                 datastore.append(tmp_away)
             else:
-                print('Warning, match not found')
+                logger.warning('Warning, match not found')
 
         headers = ['Round', 'teamId', 'where', 'wins', 'losses', 'ties']
         cols = headers + stat_cols
@@ -296,6 +303,6 @@ class EspnFantasyLeague():
                 df.rename(columns={0: home_abbr, 1: away_abbr}, inplace=True)
                 data_list.append(df)
         data_df = pd.concat(data_list, axis=1)
-        print('Processing matchup round:', np.unique(matchupPeriodId))
+        logger.info('Processing matchup round:', np.unique(matchupPeriodId))
         data_df = data_df.T.rename(columns=self.adv_stats_dict)
         return data_df

@@ -9,8 +9,9 @@ from .utils.utils import (
     fantasy_team_schedule_count,
     filter_by_round_team_stats,
     simulate_schedule,
-    shot_percentage
+    shot_percentage,
 )
+from .utils.get_logger import get_logger
 
 STAT_PERIOD_DICT = {
     '002022': 'season average',
@@ -22,6 +23,8 @@ STAT_PERIOD_DICT = {
 }
 
 SCN_DEFAULT = {"remove": {}, "add": {}}
+
+logger = get_logger(__name__)
 
 
 class EspnFantasyMatchUp(EspnFantasyLeague):
@@ -87,7 +90,7 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
     @property
     def home_team_roster_stats(self):
         if self._home_team_roster_stats is None:
-            print("getting roster stats for ", self.home_team)
+            logger.debug(f"getting roster stats for {self.home_team}")
             self._home_team_roster_stats = self.extract_roster_mean_stats(
                 self.home_team
             )
@@ -96,7 +99,7 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
     @property
     def away_team_roster_stats(self):
         if self._away_team_roster_stats is None:
-            print("getting roster stats for ", self.away_team)
+            logger.debug(f"getting roster stats for {self.away_team}")
             self._away_team_roster_stats = self.extract_roster_mean_stats(
                 self.away_team
             )
@@ -105,7 +108,7 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
     @property
     def home_team_schedule_stats(self):
         if self._home_team_schedule_stats is None:
-            print("getting schedule stats for ", self.home_team)
+            logger.debug(f"getting schedule stats for {self.home_team}")
             self._home_team_schedule_stats = self.team_shcedule_df(
                 self.home_team
             )
@@ -114,7 +117,7 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
     @property
     def away_team_schedule_stats(self):
         if self._away_team_schedule_stats is None:
-            print("getting schedule stats for ", self.away_team)
+            logger.debug(f"getting schedule stats for {self.away_team}")
             self._away_team_schedule_stats = self.team_shcedule_df(
                 self.away_team
             )
@@ -147,7 +150,7 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
             np.where(winner == 1, self.home_team, self.away_team)
         )
 
-        print('projected score %s-%s: %d-%d-%d' % (
+        logger.info('projected score %s-%s: %d-%d-%d' % (
             self.home_team, self.away_team,
             (winner == 1).sum(),
             (winner == 2).sum(),
@@ -317,7 +320,7 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
             for player_name, dates in add.items():
 
                 if player_name in getattr(self, team_type_rstats).index:
-                    print(f"Player {player_name} already in roster")
+                    logger.info(f"Player {player_name} already in roster")
                     continue
                 for player_data in players_data['players']:
                     if player_data['player']['fullName'] in player_name:
@@ -326,7 +329,7 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
                         player_stats_lst.append(player_avg_stat_dict)
                         break
                 else:
-                    print(f"Player {player_name} not found")
+                    logger.warning(f"Player {player_name} not found")
 
                 stat_df = (
                     pd.DataFrame(player_stats_lst)
@@ -411,8 +414,9 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
         This is WIP.
         '''
 
-        print('Player stats type %s'
-              % STAT_PERIOD_DICT[self._stat_type_code])
+        logger.info(
+            'Player stats type %s' % STAT_PERIOD_DICT[self._stat_type_code]
+        )
 
         fga_idx = self.simulation_stats.index('FGA')
         fta_idx = self.simulation_stats.index('FTA')

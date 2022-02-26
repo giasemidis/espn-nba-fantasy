@@ -1,5 +1,8 @@
 import numpy as np
 import pandas as pd
+from .get_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def matchup_stats(match, stat_cols, where='home'):
@@ -67,8 +70,9 @@ def extract_player_stat(player_info, stat_type_code):
     for stat_type in player_stats:
         if stat_type['id'] == stat_type_code:
             if 'averageStats' not in stat_type:
-                print(f'Player {player_name} does not have requested '
-                      + 'data')
+                logger.warning(
+                    f"Player {player_name} does not have requested data"
+                )
                 continue
             player_dict = stat_type['averageStats']
             player_dict['Name'] = player_name
