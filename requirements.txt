@@ -1,4 +1,6 @@
 pandas
 numpy
 scipy
+pytz
 jupyterlab
+mljar-mercury
