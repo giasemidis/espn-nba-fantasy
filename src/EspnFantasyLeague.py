@@ -6,7 +6,7 @@ from .utils.utils import (
     advanced_stats_by_fantasy_team,
     matchup_stats
 )
-from .utils.io_json import read_json
+# from .utils.io_json import read_json
 from .utils.get_logger import get_logger
 
 
@@ -17,7 +17,7 @@ class EspnFantasyLeague():
     """
     Class for data collection
     """
-    def __init__(self, config_file="../config/config.json"):
+    def __init__(self, cookies, league_settings):
 
         self.dtypes = {'FG%': float, 'FT%': float, '3PM': int, 'REB': int,
                        'AST': int, 'STL': int, 'BLK': int, 'TO': int,
@@ -50,17 +50,18 @@ class EspnFantasyLeague():
         self.division_setting_data = None
         self.fantasy_teams_data = None
 
-        settings = read_json('../config/config.json')
-        cookies = settings['cookies']
-        league_settings = settings['league']
-
         self.league_id = league_settings["league_id"]
         self.season = league_settings["season"]
         self.n_active_players = league_settings["n_active_players"]
         self.cookies = cookies
-        self.url_fantasy = settings['url']['fantasy_league'].format(
+        url_fantasy_league = (
+            "http://fantasy.espn.com/apis/v3/games/fba/seasons/{}/"
+            + "segments/0/leagues/{}"
+        )
+        url_nba = "http://fantasy.espn.com/apis/v3/games/fba/seasons/{}"
+        self.url_fantasy = url_fantasy_league.format(
             self.season, self.league_id)
-        self.url_nba = settings['url']['nba'].format(self.season)
+        self.url_nba = url_nba.format(self.season)
 
         self.set_league_team_division_settings()
 
@@ -93,6 +94,7 @@ class EspnFantasyLeague():
         params = {'view': endpoints, **kargs}
         r = requests.get(url_endpoint, cookies=self.cookies, params=params,
                          headers=headers)
+
         if r.status_code != 200:
             raise ValueError('Error fetching the teams data')
         data = r.json()

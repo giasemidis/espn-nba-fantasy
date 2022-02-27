@@ -28,10 +28,11 @@ logger = get_logger(__name__)
 
 
 class EspnFantasyMatchUp(EspnFantasyLeague):
-    def __init__(self, round, home_team, away_team, start_date, end_date,
-                 config_file="../config/config.json", stat_type_code='002022',
+    def __init__(self, cookies, league_settings,
+                 round, home_team, away_team, start_date, end_date,
+                 stat_type_code='002022',
                  home_scn_players=SCN_DEFAULT, away_scn_players=SCN_DEFAULT):
-        super().__init__(config_file)
+        super().__init__(cookies, league_settings)
         if round is None:
             self.round = \
                 self.division_setting_data['status']['currentMatchupPeriod']

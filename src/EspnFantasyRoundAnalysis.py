@@ -9,9 +9,9 @@ from .EspnFantasyLeague import EspnFantasyLeague
 
 
 class EspnFantasyRoundAnalysis(EspnFantasyLeague):
-    def __init__(self, round=None, scoring_period=None,
-                 config_file="../config/config.json"):
-        super().__init__(config_file)
+    def __init__(self, cookies, league_settings,
+                 round=None, scoring_period=None):
+        super().__init__(cookies, league_settings)
 
         if round is None:
             self.round = \
