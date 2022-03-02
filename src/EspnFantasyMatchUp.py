@@ -317,9 +317,7 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
         if add:
             nba_schedule_df = self.get_schedule_data()
             players_data = self.get_players_data()
-            player_stats_lst = []
             for player_name, dates in add.items():
-
                 if player_name in getattr(self, team_type_rstats).index:
                     logger.info(f"Player {player_name} already in roster")
                     continue
@@ -327,23 +325,28 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
                     if player_data['player']['fullName'] in player_name:
                         player_avg_stat_dict = extract_player_stat(
                             player_data['player'], self._stat_type_code)
-                        player_stats_lst.append(player_avg_stat_dict)
                         break
                 else:
                     logger.warning(f"Player {player_name} not found")
 
                 stat_df = (
-                    pd.DataFrame(player_stats_lst)
+                    pd.DataFrame([player_avg_stat_dict])
                     .rename(columns=self.stat_id_abbr_dict).loc[:, cols]
                 )
+
                 if dates:
+                    dates = [pd.to_datetime(d).date() for d in dates]
                     date_mask = nba_schedule_df["date"].isin(dates)
-                    nba_schedule_df = nba_schedule_df[date_mask]
+                    player_schedule_df = nba_schedule_df.copy()[date_mask]
+                else:
+                    player_schedule_df = nba_schedule_df.copy()
+
                 merged_df = (
                     stat_df.merge(
-                        nba_schedule_df, left_on='proTeamId', right_on='id'
+                        player_schedule_df, left_on='proTeamId', right_on='id'
                     ).set_index('Name')
                 )
+
                 out_data.append(merged_df)
 
         if out_data:
