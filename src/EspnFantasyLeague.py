@@ -6,7 +6,6 @@ from .utils.utils import (
     advanced_stats_by_fantasy_team,
     matchup_stats
 )
-# from .utils.io_json import read_json
 from .utils.get_logger import get_logger
 
 
