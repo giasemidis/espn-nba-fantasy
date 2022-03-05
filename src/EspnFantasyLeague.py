@@ -244,7 +244,7 @@ class EspnFantasyLeague():
 
         datastore = []
         for i, match in enumerate(data['schedule']):
-            if 'home' in match and 'away' in match:
+            if ('home' in match) and ('away' in match):
                 tmp_home = matchup_stats(match, stat_cols, 'home')
                 tmp_away = matchup_stats(match, stat_cols, 'away')
                 if tmp_home is None or tmp_away is None:
@@ -280,31 +280,74 @@ class EspnFantasyLeague():
         aggregate['FG%'] = aggregate['FGM'] / aggregate['FGA']
         return aggregate[self.fantasy_stats]
 
-    def get_adv_stats_per_fantasy_team(self, scoring_period=None):
-        ''''''
-        data = self.get_espn_data(
-            self.url_fantasy,
-            endpoints=['mMatchup', 'mMatchupScore'],
-            scoringPeriodId=scoring_period
-        )
+    def get_adv_stats_per_fantasy_team(self, week, scoring_period=None):
+        '''
+        Get the total minutes and games played for all teams in the leaguge for
+        a given week/round.
+        `scoring_period` is optional, if provided, it simply makes the data
+        extraction faster.
+        '''
+        if scoring_period is None:
+            # If `scoring_period` is None, loop over all scoring periods to find
+            #  the one that matches with the given week/round.
+            # Loop in reverse order, because we often query the latest
+            # matchup/week. Don't need to loop in increments of 1, as long as
+            # the scoring period within the given week/round it will return the
+            # right result (tested!). Increments of 3 should suffice.
+            range_ = range(self.division_setting_data["scoringPeriodId"], 0, -3)
+        else:
+            # If `scoring_period` is given "scan" only the given period, here
+            # we create an "iterable" of a single element for generalisability.
+            range_ = range(scoring_period, scoring_period + 1)
 
-        data_list = []
-        matchupPeriodId = []
-        stat_codes = list(self.adv_stats_dict.keys())
-        for matchup in data['schedule']:
-            if ('rosterForMatchupPeriod' in matchup['home']
-                    and 'rosterForMatchupPeriod' in matchup['away']):
-                matchupPeriodId.append(matchup['matchupPeriodId'])
-                home_abbr = self.team_id_abbr_dict[matchup['home']['teamId']]
-                away_abbr = self.team_id_abbr_dict[matchup['away']['teamId']]
-                home_stats = advanced_stats_by_fantasy_team(matchup['home'],
-                                                            stat_codes)
-                away_stats = advanced_stats_by_fantasy_team(matchup['away'],
-                                                            stat_codes)
-                df = pd.concat((home_stats, away_stats), axis=1)
-                df.rename(columns={0: home_abbr, 1: away_abbr}, inplace=True)
-                data_list.append(df)
+        found = False
+        for scoring_period in range_:
+            if not found:
+                data = self.get_espn_data(
+                    self.url_fantasy,
+                    endpoints=['mMatchup', 'mMatchupScore'],
+                    scoringPeriodId=scoring_period
+                )
+            else:
+                break
+
+            data_list = []
+            matchupPeriodId = []
+            stat_codes = list(self.adv_stats_dict.keys())
+            for matchup in data['schedule']:
+                if ((matchup['matchupPeriodId'] == week)
+                        and ('rosterForMatchupPeriod' in matchup['home'])
+                        and ('rosterForMatchupPeriod' in matchup['away'])):
+                    found = True
+                    matchupPeriodId.append(matchup['matchupPeriodId'])
+
+                    home_abbr = self.team_id_abbr_dict[
+                        matchup['home']['teamId']]
+                    away_abbr = self.team_id_abbr_dict[
+                        matchup['away']['teamId']]
+                    home_stats = advanced_stats_by_fantasy_team(
+                        matchup['home'],
+                        stat_codes
+                    )
+                    away_stats = advanced_stats_by_fantasy_team(
+                        matchup['away'],
+                        stat_codes
+                    )
+                    df = pd.concat((home_stats, away_stats), axis=1)
+                    df.rename(
+                        columns={0: home_abbr, 1: away_abbr},
+                        inplace=True
+                    )
+                    data_list.append(df)
+
+        if not matchupPeriodId:
+            err_msg = (
+                f"Scoring period {scoring_period} does not "
+                + f"correspond to input round {week}"
+            )
+            logger.error(err_msg)
+            raise ValueError(err_msg)
+
         data_df = pd.concat(data_list, axis=1)
-        logger.info(f"Processing matchup round: {np.unique(matchupPeriodId)}")
         data_df = data_df.T.rename(columns=self.adv_stats_dict)
         return data_df

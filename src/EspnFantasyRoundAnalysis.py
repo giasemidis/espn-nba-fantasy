@@ -18,12 +18,7 @@ class EspnFantasyRoundAnalysis(EspnFantasyLeague):
                 self.division_setting_data['status']['currentMatchupPeriod'] - 1
         else:
             self.round = round
-
-        if scoring_period is None:
-            self.scoring_period = \
-                self.division_setting_data["scoringPeriodId"] - 1
-        else:
-            self.scoring_period = scoring_period
+        self.scoring_period = scoring_period
 
         self.fantasy_teams_data = None
         self.stats_all_rounds = None
@@ -42,7 +37,7 @@ class EspnFantasyRoundAnalysis(EspnFantasyLeague):
             table = self.stats_all_rounds
 
         mints_games_round_df = self.get_adv_stats_per_fantasy_team(
-            scoring_period=self.scoring_period
+            self.round, self.scoring_period
         )
 
         table = table.loc[table['Round'] == self.round, self.fantasy_stats]
