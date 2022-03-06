@@ -1,6 +1,6 @@
 pandas==1.1.5
 numpy==1.19.2
-scipy==1.5.2
+scipy==1.5.4
 pytz==2020.4
 jupyterlab==2.2.6
 mljar-mercury==0.5.1
