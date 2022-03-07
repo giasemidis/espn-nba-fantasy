@@ -84,3 +84,25 @@ def convert_input_str_to_dict(input_str):
     # for reading it as a dictionary with json
     input_str = "{%s}" % input_str
     return json.loads(input_str)
+
+
+def parameter_checks(logger, swid, espn_s2, league_id):
+    """
+    Check the validity of input cookies nand league id.
+    """
+    if swid == "":
+        logger.warning(
+            "`swid` is empty. If this is *not* a public league, "
+            + "provide a value."
+        )
+
+    if espn_s2 == "":
+        logger.warning(
+            "`espn_s2` is empty. If this is *not* a public league, "
+            + "provide a value."
+        )
+
+    if league_id == "":
+        logger.error("`league_id` is empty. Provide the `league_id` parameter")
+
+    return
