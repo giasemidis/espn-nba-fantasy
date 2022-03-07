@@ -385,11 +385,11 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
 
         # get the schedule table of the first team
         home_table = fantasy_team_schedule_count(
-            home_team_schedule, self.n_active_players
+            home_team_schedule, self.n_starters
         )
         # get the schedule table of the second team
         away_table = fantasy_team_schedule_count(
-            away_team_schedule, self.n_active_players
+            away_team_schedule, self.n_starters
         )
         # merge the two on the dates
         table = home_table.merge(

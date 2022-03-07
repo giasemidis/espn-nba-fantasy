@@ -51,7 +51,6 @@ class EspnFantasyLeague():
 
         self.league_id = league_settings["league_id"]
         self.season = league_settings["season"]
-        self.n_active_players = league_settings["n_active_players"]
         self.cookies = cookies
         url_fantasy_league = (
             "http://fantasy.espn.com/apis/v3/games/fba/seasons/{}/"
@@ -170,6 +169,13 @@ class EspnFantasyLeague():
             logger.warning('There are more than 1 divisions')
         self.n_teams = len(data['teams'])
         logger.info('%d teams participating' % self.n_teams)
+
+        lineupslots = data['settings']['rosterSettings']['lineupSlotCounts']
+        # 0 to 11 are valid roster slots. slot 12 is bench, slot 13 is IR.
+        self.n_starters = sum(
+            [v for k, v in lineupslots.items() if int(k) < 12]
+        )
+        logger.info('%d starters per team' % self.n_starters)
         return
 
     def make_stat_table(self):
