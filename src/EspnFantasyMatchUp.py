@@ -21,7 +21,7 @@ logger = get_logger(__name__)
 class EspnFantasyMatchUp(EspnFantasyLeague):
     def __init__(self, cookies, league_settings,
                  round, home_team, away_team, start_date, end_date,
-                 stat_type_code='002022',
+                 stat_type='season average',
                  home_scn_players=SCN_DEFAULT, away_scn_players=SCN_DEFAULT):
         super().__init__(cookies, league_settings)
         if round is None:
@@ -32,13 +32,17 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
 
         season = self.season
         self._stat_period_dict = {
-            f"00{season}": 'season average',
-            f"01{season}": 'last 7 days average',
-            f"02{season}": 'last 15 days average',
-            f"03{season}": 'last 30 days average',
-            f"10{season}": "season's projections",
-            f"00{season-1}": 'previous season average'
+            'season average': f"00{season}",
+            'last 7 days average': f"01{season}",
+            'last 15 days average': f"02{season}",
+            'last 30 days average': f"03{season}",
+            "season's projections": f"10{season}",
+            'previous season average': f"00{season-1}"
         }
+        if stat_type not in self._stat_period_dict:
+            raise ValueError("stat type for player's stat not valid")
+        self._stat_type = stat_type
+        self.stat_type_code = self._stat_period_dict[stat_type]
 
         self._home_team = home_team
         self._away_team = away_team
@@ -48,7 +52,6 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
             home_team: "home_team",
             away_team: "away_team"
         }
-        self.stat_type_code = stat_type_code
 
         self.fantasy_teams_data = None
         self.nba_schedule_df = None
@@ -421,7 +424,7 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
         '''
 
         logger.info(
-            f"Player stats type {self._stat_period_dict[self._stat_type_code]}"
+            f"Player stats type {self._stat_type}"
         )
 
         fga_idx = self.simulation_stats.index('FGA')
