@@ -13,15 +13,6 @@ from .utils.utils import (
 )
 from .utils.get_logger import get_logger
 
-STAT_PERIOD_DICT = {
-    '002022': 'season average',
-    '012022': 'last 7 days average',
-    '022022': 'last 15 days average',
-    '032022': 'last 30 days average',
-    '102022': "season's projections",
-    '002021': 'previous season average'
-}
-
 SCN_DEFAULT = {"remove": {}, "add": {}}
 
 logger = get_logger(__name__)
@@ -38,6 +29,17 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
                 self.division_setting_data['status']['currentMatchupPeriod']
         else:
             self.round = round
+
+        season = self.season
+        self._stat_period_dict = {
+            f"00{season}": 'season average',
+            f"01{season}": 'last 7 days average',
+            f"02{season}": 'last 15 days average',
+            f"03{season}": 'last 30 days average',
+            f"10{season}": "season's projections",
+            f"00{season-1}": 'previous season average'
+        }
+
         self._home_team = home_team
         self._away_team = away_team
         self._start_date = start_date
@@ -419,7 +421,7 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
         '''
 
         logger.info(
-            'Player stats type %s' % STAT_PERIOD_DICT[self._stat_type_code]
+            f"Player stats type {self._stat_period_dict[self._stat_type_code]}"
         )
 
         fga_idx = self.simulation_stats.index('FGA')
