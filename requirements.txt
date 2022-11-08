@@ -1,8 +1,9 @@
-pandas==1.1.5
-numpy==1.19.2
-scipy==1.5.4
-pytz==2020.4
+jinja2==3.0.1
 jupyterlab==2.2.6
 mljar-mercury==0.5.1
 nbstripout==0.6.1
+numpy==1.19.2
+pandas==1.1.5
 pre-commit==2.20.0
+pytz==2020.4
+scipy==1.5.4
