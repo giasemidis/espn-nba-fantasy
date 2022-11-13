@@ -22,6 +22,14 @@ DTYPES = {
     "Games": int
 }
 
+
+@st.cache
+def convert_df(df):
+    # IMPORTANT: Cache the conversion to prevent computation on every rerun
+    return df.to_csv().encode('utf-8')
+
+
+# Start the App #
 st.title("Post round analysis for ESPN NBA Fantasy leagues")
 
 app_desc_body = """
@@ -56,7 +64,7 @@ app_desc_body = """
     [here](https://github.com/giasemidis/espn-nba-fantasy/issues).
 """  # noqa: E501
 
-with st.expander("App Description"):
+with st.expander("App Description", expanded=True):
     # st.header("")
     st.markdown(app_desc_body)
 
@@ -87,16 +95,19 @@ league_id_help = """
     parameter.
 """
 season_help = f"""
-    Leave this to current season, i.e. {CURRENT_SEASON}, unless you want to run
-    analysis of a round of a previous season.
+    Leave this to current season, i.e. {CURRENT_SEASON},
+    unless you want to run analysis of a round of a previous season.
 """
 round_help = """
+    A positive interger. It must be a current or past round, as this app
+    assesses the performance of the fantasy teams in completed rounds
+"""
+scoring_period_help = """
     If provided, data extraction is faster. It is the day since the start of
     the season. To find the scoring period of the round under consideration, go
     to "Scoreboard" on ESPN, select the matchup round of interest and read the
     number next to `mSPID=` in the url.
 """
-
 
 # parameters
 with st.form(key='my_form'):
@@ -130,7 +141,7 @@ with st.form(key='my_form'):
         min_value=0,
         max_value=500,
         step=1,
-        help=round_help
+        help=scoring_period_help
     )
     scoring_period = None if scoring_period == 0 else scoring_period
 
@@ -178,6 +189,11 @@ if submit_button:
             """
         )
         st.table(data=adv_stats_df)
+        # st.download_button(
+        #     "Download data",
+        #     data=convert_df(adv_stats_df),
+        #     file_name="round_stats.csv"
+        # )
 
     with tab2:
         st.header("Ranking index for each statistical category")
@@ -187,6 +203,11 @@ if submit_button:
             """
         )
         st.table(data=adv_stats_rank_df)
+        # st.download_button(
+        #     "Download data",
+        #     data=convert_df(adv_stats_rank_df),
+        #     file_name="round_stats_ranking.csv"
+        # )
 
     with tab3:
         st.header("Head to Head scores for all possible match-ups in the round")
@@ -197,6 +218,11 @@ if submit_button:
             """
         )
         st.table(data=h2h_df)
+        # st.download_button(
+        #     "Download data",
+        #     data=convert_df(h2h_df),
+        #     file_name="head_to_head_results.csv"
+        # )
 
     with tab4:
         st.header("Percentage wins from the H2H matchups")
@@ -207,5 +233,10 @@ if submit_button:
             """
         )
         st.table(data=win_ratio_df)
+        # st.download_button(
+        #     "Download data",
+        #     data=convert_df(win_ratio_df),
+        #     file_name="percentage_wins.csv"
+        # )
 
     st.success('Done!')
