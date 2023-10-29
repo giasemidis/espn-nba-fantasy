@@ -69,8 +69,6 @@ def main():
     nine aforementioned stats, but uses a *Head to Head Points* scoring system.
     Here, the league is emulated as if the scoring system was
     "Head to Head Each Category".
-    Checkout the [Post round analysis](https://espn-nba-fantasy.herokuapp.com/)
-    app for the participated teams and their abbreaviations.
 
     Report bugs and issues
     [here](https://github.com/giasemidis/espn-nba-fantasy/issues).
