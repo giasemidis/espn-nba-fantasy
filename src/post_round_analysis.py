@@ -1,13 +1,9 @@
-
-import sys
 import streamlit as st
 
-# sys.path.append('.')
-
-from EspnFantasyRoundAnalysis import EspnFantasyRoundAnalysis  # noqa: E402
+from EspnFantasyRoundAnalysis import EspnFantasyRoundAnalysis
 from global_params import DTYPES, ROUND_HELP, SCORING_PERIOD_HELP
-from utils.get_logger import get_logger  # noqa: E402
-from utils.streamlit_utils import get_cookies_league_params  # noqa: E402
+from utils.get_logger import get_logger
+from utils.app_utils import get_cookies_league_params, parameter_checks
 
 logger = get_logger(__name__)
 
@@ -97,6 +93,11 @@ def main():
         submit_button = st.form_submit_button(label='Submit')
 
     if submit_button:
+        parameter_checks(
+            swid=cookies["swid"],
+            espn_s2=cookies["espn_s2"],
+            league_id=league_settings["league_id"]
+        )
         with st.spinner('We are doing the clever stuff'):
             espn = EspnFantasyRoundAnalysis(
                 cookies=cookies,

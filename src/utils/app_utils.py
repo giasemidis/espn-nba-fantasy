@@ -1,8 +1,44 @@
 import re
 import json
+import streamlit as st
+from global_params import (
+    CURRENT_SEASON, SWID_HELP, ESPN_S2_HELP, LEAGUE_ID_HELP, SEASON_HELP
+)
 from utils.get_logger import get_logger
 
 logger = get_logger(__name__)
+
+
+def get_cookies_league_params():
+    """
+    """
+    with st.sidebar:
+        st.header("Cookie and league parameters")
+        st.write(
+            "Check the help button for further details and how to identify the "
+            "cookies and the league id."
+        )
+        swid = st.text_input(label="swid (cookie)", help=SWID_HELP)
+        espn_s2 = st.text_input(label="espn_s2 (cookie)", help=ESPN_S2_HELP)
+        league_id = st.text_input(
+            label="The ID of the ESPN league", help=LEAGUE_ID_HELP)
+        season = st.number_input(
+            'The season of the league',
+            value=CURRENT_SEASON,
+            min_value=2019,
+            max_value=CURRENT_SEASON,
+            step=1,
+            help=SEASON_HELP
+        )
+    cookies = {
+        "swid": swid,
+        "espn_s2": espn_s2,
+    }
+    league_params = {
+        "league_id": league_id,
+        "season": season
+    }
+    return cookies, league_params
 
 
 def convert_input_strs_to_scn_dict(add, remove):
@@ -94,18 +130,18 @@ def parameter_checks(swid, espn_s2, league_id):
     Check the validity of input cookies nand league id.
     """
     if swid == "":
-        logger.warning(
+        st.warning(
             "`swid` is empty. If this is *not* a public league, "
             + "provide a value."
         )
 
     if espn_s2 == "":
-        logger.warning(
+        st.warning(
             "`espn_s2` is empty. If this is *not* a public league, "
             + "provide a value."
         )
 
     if league_id == "":
-        logger.error("`league_id` is empty. Provide the `league_id` parameter")
+        st.error("`league_id` is empty. Provide the `league_id` parameter")
 
     return

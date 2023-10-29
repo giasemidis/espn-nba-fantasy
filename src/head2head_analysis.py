@@ -1,12 +1,9 @@
-
-# import sys
 import streamlit as st
 
-# sys.path.append('.')
-from global_params import ROUND_HELP  # noqa: E402
-from EspnFantasyMatchUp import EspnFantasyMatchUp  # noqa: E402
-from utils.get_logger import get_logger  # noqa: E402
-from utils.streamlit_utils import get_cookies_league_params  # noqa: E402
+from global_params import ROUND_HELP
+from EspnFantasyMatchUp import EspnFantasyMatchUp
+from utils.get_logger import get_logger
+from utils.app_utils import get_cookies_league_params, parameter_checks
 
 logger = get_logger(__name__)
 
@@ -84,6 +81,11 @@ def main():
 
     use_current_score = round_params.pop("use_current_score")
     if submit_button:
+        parameter_checks(
+            swid=cookies["swid"],
+            espn_s2=cookies["espn_s2"],
+            league_id=league_settings["league_id"]
+        )
         with st.spinner('We are doing the clever stuff'):
             espn = EspnFantasyMatchUp(cookies, league_settings, **round_params)
             h2h_stat_df = espn.h2h_season_stats_comparison().astype("O")
