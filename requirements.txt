@@ -1,10 +1,10 @@
-jinja2==3.0.1
+# jinja2==3.0.1
 jupyterlab==2.2.6
-mljar-mercury==0.5.1
+# mljar-mercury==0.5.1
 nbstripout==0.6.1
-numpy==1.19.2
-pandas==1.1.5
+numpy==1.24.4
+pandas==2.0.3
 pre-commit==2.20.0
 pytz==2020.4
 scipy==1.5.4
-streamlit==1.14.1
+streamlit==1.28.0
