@@ -1,5 +1,8 @@
 import re
 import json
+from .get_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def convert_input_strs_to_scn_dict(add, remove):
@@ -86,7 +89,7 @@ def convert_input_str_to_dict(input_str):
     return json.loads(input_str)
 
 
-def parameter_checks(logger, swid, espn_s2, league_id):
+def parameter_checks(swid, espn_s2, league_id):
     """
     Check the validity of input cookies nand league id.
     """

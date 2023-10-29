@@ -1,37 +1,13 @@
+from streamlit_utils import get_cookies_league_params
 import sys
 import streamlit as st
-from global_params import (
-    CURRENT_SEASON, SWID_HELP, ESPN_S2_HELP, LEAGUE_ID_HELP, SEASON_HELP, ROUND_HELP
-)
+from global_params import ROUND_HELP
 
 sys.path.append('.')
 from src.EspnFantasyMatchUp import EspnFantasyMatchUp  # noqa: E402
+from src.utils.get_logger import get_logger  # noqa: E402
 
-
-# @st.cache
-def get_cookies_league_params():
-    with st.sidebar:
-        swid = st.text_input(label="swid (cookie)", help=SWID_HELP)
-        espn_s2 = st.text_input(label="espn_s2 (cookie)", help=ESPN_S2_HELP)
-        league_id = st.text_input(
-            label="The ID of the ESPN league", help=LEAGUE_ID_HELP)
-        season = st.number_input(
-            'The season of the league',
-            value=CURRENT_SEASON,
-            min_value=2019,
-            max_value=CURRENT_SEASON,
-            step=1,
-            help=SEASON_HELP
-        )
-    cookies = {
-        "swid": swid,
-        "espn_s2": espn_s2,
-    }
-    league_params = {
-        "league_id": league_id,
-        "season": season
-    }
-    return cookies, league_params
+logger = get_logger(__name__)
 
 
 # @st.cache
@@ -77,6 +53,29 @@ def get_round_params():
 
 
 def main():
+    st.title("Head-to-head pre-round analysis")
+    app_description = """
+    This app helps the user to prepare for an upcoming match-up between two fantasy
+    teams. This is based on a league with *Head to Head Each Category* scoring type
+    and 9 statistical categories (FG%, FT%, 3PM, REB, AST, STL, BLK, TO, PTS).
+
+    * It compares their schedule (number of starter players and unused players)
+    * It compares the teams' historic stats up to this round
+    * Simulates/projects the match-up based on the players' average stats and schedule.
+    * Allows for scenarios, such as replace player X with player Y
+
+    Further details on [this Medium blog post](https://g-giasemidis.medium.com/nba-fantasy-analytics-with-python-on-epsn-f03f10a60187).
+
+    Use this *public* league id `10149515` for trying out app.
+    No need for `swid` and `espn_s2` cookies. This league is based on the same
+    nine aforementioned stats, but uses a *Head to Head Points* scoring system. Here, the league is emulated as if the scoring system was "Head to Head Each Category". Checkout the [Post round analysis](https://espn-nba-fantasy.herokuapp.com/) app for the participated teams and their abbreaviations.
+
+    Report bugs and issues [here](https://github.com/giasemidis/espn-nba-fantasy/issues).
+
+    """
+    with st.expander("App Description", expanded=True):
+        st.markdown(app_description)
+
     cookies, league_settings = get_cookies_league_params()
     with st.form(key='my_form'):
         round_params = get_round_params()
@@ -84,20 +83,16 @@ def main():
 
     use_current_score = round_params.pop("use_current_score")
     if submit_button:
-        # st.write(cookies)
-        # st.write(league_settings)
-        # st.write(type(round_params["end_date"]))
-        espn = EspnFantasyMatchUp(
-            cookies, league_settings,
-            **round_params
-        )
+        with st.spinner('We are doing the clever stuff'):
+            espn = EspnFantasyMatchUp(cookies, league_settings, **round_params)
+            h2h_stat_df = espn.h2h_season_stats_comparison().astype("O")
+            schedule_df = espn.compare_schedules().astype("O")
+            sim_df = espn.simulation(use_current_score=use_current_score)
 
         st.text("Navigate across the tabs to access the different analysis tables")
         tab1, tab2, tab3 = st.tabs(
             ["H2H season stats comparison", "Schedule Comparison", "Simulation"]
         )
-        h2h_stat_df = espn.h2h_season_stats_comparison().astype("O")
-        schedule_df = espn.compare_schedules().astype("O")
 
         with tab1:
             st.dataframe(h2h_stat_df)
@@ -106,8 +101,7 @@ def main():
             st.dataframe(schedule_df)
 
         with tab3:
-            st.write("This is the simulation tab")
-            # df3 = espn.simulation(use_current_score=use_current_score)
+            st.dataframe(sim_df)
 
     return
 
