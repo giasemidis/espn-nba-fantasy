@@ -51,7 +51,7 @@ def main():
         a league with *Head to Head Each Category* scoring type and 9 stat
         categories (FG%, FT%, 3PM, REB, AST, STL, BLK, TO, PTS).
 
-        * It displays the 8 stat categories in addition to total minutes and games
+        * It displays the 9 stat categories in addition to total minutes and games
             played by each team in a single table.
         * The ranking of the above stat categories, i.e. how each team is ranked
             for each category.

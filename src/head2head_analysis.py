@@ -66,10 +66,14 @@ def main():
 
     Use this *public* league id `10149515` for trying out app.
     No need for `swid` and `espn_s2` cookies. This league is based on the same
-    nine aforementioned stats, but uses a *Head to Head Points* scoring system. Here, the league is emulated as if the scoring system was "Head to Head Each Category". Checkout the [Post round analysis](https://espn-nba-fantasy.herokuapp.com/) app for the participated teams and their abbreaviations.
+    nine aforementioned stats, but uses a *Head to Head Points* scoring system.
+    Here, the league is emulated as if the scoring system was
+    "Head to Head Each Category".
+    Checkout the [Post round analysis](https://espn-nba-fantasy.herokuapp.com/)
+    app for the participated teams and their abbreaviations.
 
-    Report bugs and issues [here](https://github.com/giasemidis/espn-nba-fantasy/issues).
-
+    Report bugs and issues
+    [here](https://github.com/giasemidis/espn-nba-fantasy/issues).
     """
     with st.expander("App Description", expanded=True):
         st.markdown(app_description)
