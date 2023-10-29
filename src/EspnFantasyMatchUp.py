@@ -154,7 +154,7 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
         dftemp['Projected Winner'] = np.where(
             winner == 0, None,
             np.where(winner == 1, self.home_team, self.away_team)
-        )
+        ).flatten()
 
         logger.info('projected score %s-%s: %d-%d-%d' % (
             self.home_team, self.away_team,
@@ -222,11 +222,11 @@ class EspnFantasyMatchUp(EspnFantasyLeague):
 
         since = (
             df['date'].iloc[0] if self.start_date is None
-            else pd.to_datetime(self.start_date)
+            else pd.to_datetime(self.start_date).date()
         )
         to = (
             df['date'].iloc[-1] if self.end_date is None
-            else pd.to_datetime(self.end_date)
+            else pd.to_datetime(self.end_date).date()
         )
         period_df = (df.loc[(df['date'] >= since) & (df['date'] <= to)]
                      .reset_index(drop=True))

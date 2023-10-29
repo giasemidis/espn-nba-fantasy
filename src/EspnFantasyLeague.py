@@ -16,6 +16,7 @@ class EspnFantasyLeague():
     """
     Class for data collection
     """
+
     def __init__(self, cookies, league_settings):
 
         self.dtypes = {'FG%': float, 'FT%': float, '3PM': int, 'REB': int,
@@ -154,8 +155,7 @@ class EspnFantasyLeague():
             team['id']: team['abbrev'] for team in data['teams']
         }
         self.team_id_name_dict = {
-            team['id']: team['location'] + ' ' + team['nickname']
-            for team in data['teams']
+            team['id']: team['abbrev'] for team in data['teams']
         }
         self.team_abbr_name_dict = {
             v: self.team_id_name_dict[k]

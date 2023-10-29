@@ -1,3 +1,7 @@
+from global_params import (
+    CURRENT_SEASON, DTYPES, SWID_HELP, ESPN_S2_HELP, LEAGUE_ID_HELP,
+    SEASON_HELP, ROUND_HELP, SCORING_PERIOD_HELP
+)
 import sys
 import streamlit as st
 
@@ -6,21 +10,6 @@ sys.path.append('.')
 from src.EspnFantasyRoundAnalysis import EspnFantasyRoundAnalysis  # noqa: E402
 from src.utils.app_utils import parameter_checks  # noqa: E402
 from src.utils.get_logger import get_logger  # noqa: E402
-
-CURRENT_SEASON = 2023
-DTYPES = {
-    "FG%": float,
-    "FT%": float,
-    "3PM": int,
-    "REB": int,
-    "AST": int,
-    "STL": int,
-    "BLK": int,
-    "TO": int,
-    "PTS": int,
-    "Mins": int,
-    "Games": int
-}
 
 
 @st.cache
@@ -77,45 +66,13 @@ app_parm_body = """
 """
 st.text(app_parm_body)
 
-swid_help = """
-    If your league is public, leave blank. Otherwise: In Safari these
-    cookies can be found by opening the Storage tab of Developer tools
-    (developer tools can be turned on in preferences), and looking
-    under espn.com in the Cookies folder. In Chrome, they can be found
-    in Settings -> Cookies and other site data -> See all cookies and
-    site data, and search for ESPN.
-"""
-espn_s2_help = """
-    If your league is public, leave blank. Otherwise, follow above
-    instructions.
-"""
-league_id_help = """
-    Go to your ESPN league page. The URL should contain something like
-    `leagueId=12345678`. Copy and paste the number next to the `leagueid=`
-    parameter.
-"""
-season_help = f"""
-    Leave this to current season, i.e. {CURRENT_SEASON},
-    unless you want to run analysis of a round of a previous season.
-"""
-round_help = """
-    A positive interger. It must be a current or past round, as this app
-    assesses the performance of the fantasy teams in completed rounds
-"""
-scoring_period_help = """
-    If provided, data extraction is faster. It is the day since the start of
-    the season. To find the scoring period of the round under consideration, go
-    to "Scoreboard" on ESPN, select the matchup round of interest and read the
-    number next to `mSPID=` in the url.
-"""
-
 # parameters
 with st.form(key='my_form'):
-    swid = st.text_input('swid (cookie)', "", help=swid_help)
-    espn_s2 = st.text_input('espn_s2 (cookie)', "", help=espn_s2_help)
+    swid = st.text_input('swid (cookie)', "", help=SWID_HELP)
+    espn_s2 = st.text_input('espn_s2 (cookie)', "", help=ESPN_S2_HELP)
     league_id = st.number_input(
         'The ID of the ESPN league', format='%d',
-        min_value=0, help=league_id_help)
+        min_value=0, help=LEAGUE_ID_HELP)
 
     season = st.number_input(
         'The season of the league',
@@ -123,7 +80,7 @@ with st.form(key='my_form'):
         min_value=2019,
         max_value=CURRENT_SEASON,
         step=1,
-        help=season_help
+        help=SEASON_HELP
     )
 
     week = st.number_input(
@@ -132,7 +89,7 @@ with st.form(key='my_form'):
         min_value=0,
         max_value=100,
         step=1,
-        help=round_help
+        help=ROUND_HELP
     )
 
     scoring_period = st.number_input(
@@ -141,7 +98,7 @@ with st.form(key='my_form'):
         min_value=0,
         max_value=500,
         step=1,
-        help=scoring_period_help
+        help=SCORING_PERIOD_HELP
     )
     scoring_period = None if scoring_period == 0 else scoring_period
 
