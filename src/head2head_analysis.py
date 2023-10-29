@@ -1,11 +1,12 @@
-from streamlit_utils import get_cookies_league_params
-import sys
-import streamlit as st
-from global_params import ROUND_HELP
 
-sys.path.append('.')
-from src.EspnFantasyMatchUp import EspnFantasyMatchUp  # noqa: E402
-from src.utils.get_logger import get_logger  # noqa: E402
+# import sys
+import streamlit as st
+
+# sys.path.append('.')
+from global_params import ROUND_HELP  # noqa: E402
+from EspnFantasyMatchUp import EspnFantasyMatchUp  # noqa: E402
+from utils.get_logger import get_logger  # noqa: E402
+from utils.streamlit_utils import get_cookies_league_params  # noqa: E402
 
 logger = get_logger(__name__)
 

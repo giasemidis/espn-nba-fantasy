@@ -2,11 +2,11 @@ import requests
 import json
 import numpy as np
 import pandas as pd
-from .utils.utils import (
+from utils.utils import (
     advanced_stats_by_fantasy_team,
     matchup_stats
 )
-from .utils.get_logger import get_logger
+from utils.get_logger import get_logger
 
 
 logger = get_logger(__name__)

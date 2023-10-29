@@ -4,8 +4,8 @@ import pandas as pd
 from scipy.spatial.distance import pdist
 from scipy.spatial.distance import squareform
 
-from .utils.utils import fantasy_matchup_score
-from .EspnFantasyLeague import EspnFantasyLeague
+from utils.utils import fantasy_matchup_score
+from EspnFantasyLeague import EspnFantasyLeague
 
 
 class EspnFantasyRoundAnalysis(EspnFantasyLeague):

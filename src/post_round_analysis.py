@@ -1,12 +1,13 @@
-from streamlit_utils import get_cookies_league_params
-from global_params import DTYPES, ROUND_HELP, SCORING_PERIOD_HELP
+
 import sys
 import streamlit as st
 
-sys.path.append('.')
+# sys.path.append('.')
 
-from src.EspnFantasyRoundAnalysis import EspnFantasyRoundAnalysis  # noqa: E402
-from src.utils.get_logger import get_logger  # noqa: E402
+from EspnFantasyRoundAnalysis import EspnFantasyRoundAnalysis  # noqa: E402
+from global_params import DTYPES, ROUND_HELP, SCORING_PERIOD_HELP
+from utils.get_logger import get_logger  # noqa: E402
+from utils.streamlit_utils import get_cookies_league_params  # noqa: E402
 
 logger = get_logger(__name__)
 

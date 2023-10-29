@@ -4,9 +4,9 @@ from global_params import (
     CURRENT_SEASON, SWID_HELP, ESPN_S2_HELP, LEAGUE_ID_HELP, SEASON_HELP, ROUND_HELP
 )
 
-sys.path.append('.')
-from src.utils.app_utils import parameter_checks  # noqa: E402
-from src.utils.get_logger import get_logger  # noqa: E402
+# sys.path.append('.')
+from utils.app_utils import parameter_checks  # noqa: E402
+from utils.get_logger import get_logger  # noqa: E402
 
 logger = get_logger(__name__)
 

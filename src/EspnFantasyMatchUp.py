@@ -3,15 +3,15 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-from .EspnFantasyLeague import EspnFantasyLeague
-from .utils.utils import (
+from EspnFantasyLeague import EspnFantasyLeague
+from utils.utils import (
     extract_player_stat,
     fantasy_team_schedule_count,
     filter_by_round_team_stats,
     simulate_schedule,
     shot_percentage,
 )
-from .utils.get_logger import get_logger
+from utils.get_logger import get_logger
 
 SCN_DEFAULT = {"remove": {}, "add": {}}
 

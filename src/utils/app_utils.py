@@ -1,6 +1,6 @@
 import re
 import json
-from .get_logger import get_logger
+from utils.get_logger import get_logger
 
 logger = get_logger(__name__)
 
