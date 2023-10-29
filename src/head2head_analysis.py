@@ -51,7 +51,7 @@ def get_round_params():
 
 
 def main():
-    st.title("Head-to-head pre-round analysis")
+    st.title("Head-to-head pre-round analysis for ESPN NBA Fantasy leagues")
     app_description = """
     This app helps the user to prepare for an upcoming match-up between two fantasy
     teams. This is based on a league with *Head to Head Each Category* scoring type

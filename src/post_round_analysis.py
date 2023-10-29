@@ -44,7 +44,7 @@ def get_round_params():
 def main():
 
     # Start the App #
-    st.title("Post round analysis for ESPN NBA Fantasy leagues")
+    st.title("Post-round analysis for ESPN NBA Fantasy leagues")
 
     app_desc_body = """
         This app assesses the teams' performance of a past round. This is based on
