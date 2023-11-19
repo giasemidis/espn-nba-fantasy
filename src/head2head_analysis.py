@@ -47,7 +47,10 @@ def get_round_params(espnfantasyleague_obj):
         "season's projections",
         "previous season average"
     ]
-    stat_type = st.selectbox(label="Stat type", options=stat_types, help="")
+    stat_type = st.selectbox(
+        label="Stat type", options=stat_types,
+        help="The type of stat to be used in the simulation of the match-up"
+    )
     round_params = {
         "round": round,
         "start_date": start_date,
@@ -104,8 +107,9 @@ def main():
             round_params = get_round_params(espn)
             with st.expander("Scenario subs", expanded=False):
                 st.write(
-                    """Explore what if scenarios; adding and/or removing
-                    players and the impact on schedule and simulated match-up"""
+                    """Explore hypothetical player substitutions;
+                    adding and/or removing players and their impact
+                    on schedule and the simulated statistics"""
                 )
                 home_player_add = st.text_area(
                     "Home players to add", value="", help=SCENARIO_HELP)

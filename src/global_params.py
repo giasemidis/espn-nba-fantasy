@@ -53,13 +53,13 @@ SCORING_PERIOD_HELP = """
 SCENARIO_HELP = """
     To add or remove a player, use the following format:
     ```
-    "<player_name1>": ["<date1>", "<date2>"],
-    "<player_name2>": ["<date1>"]
+    "<player_name1>": ["<YYYY-MM-DD>", "<YYYY-MM-DD>"],
+    "<player_name2>": ["<YYYY-MM-DD>"]
     ```
     where replace the player name and the dates in `<...>`.
     For example:
     ```
     "Nikola Jokic": ["2023-10-25", "2023-10-26"]
     ```
-    Leave blank if no player is added or removed
+    Leave blank/empty if no player is added or removed
 """
