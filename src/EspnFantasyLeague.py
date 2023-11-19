@@ -155,7 +155,7 @@ class EspnFantasyLeague():
             team['id']: team['abbrev'] for team in data['teams']
         }
         self.team_id_name_dict = {
-            team['id']: team['abbrev'] for team in data['teams']
+            team['id']: team['name'] for team in data['teams']
         }
         self.team_abbr_name_dict = {
             v: self.team_id_name_dict[k]

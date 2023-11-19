@@ -15,6 +15,7 @@ def get_cookies_league_params():
     with st.sidebar:
         st.header("Cookie and league parameters")
         st.write(
+            "First fill in the league parameters. "
             "Check the help button for further details and how to identify the "
             "cookies and the league id."
         )
@@ -127,8 +128,9 @@ def convert_input_str_to_dict(input_str):
 
 def parameter_checks(swid, espn_s2, league_id):
     """
-    Check the validity of input cookies nand league id.
+    Check the validity of input cookies and league id.
     """
+    flag = True
     if swid == "":
         st.warning(
             "`swid` is empty. If this is *not* a public league, "
@@ -142,6 +144,17 @@ def parameter_checks(swid, espn_s2, league_id):
         )
 
     if league_id == "":
+        flag = False
         st.error("`league_id` is empty. Provide the `league_id` parameter")
 
-    return
+    return flag
+
+
+def format_sub_dct(s):
+    """Formats input string into a dictionary appropriate for sims"""
+    out_dct = {}
+    if s == "":
+        out_dct = {}
+    else:
+        out_dct = json.loads(f"{{{s}}}")
+    return out_dct

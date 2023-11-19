@@ -1,15 +1,16 @@
 import streamlit as st
 
-from global_params import ROUND_HELP
+from global_params import ROUND_HELP, SCENARIO_HELP
+from EspnFantasyLeague import EspnFantasyLeague
 from EspnFantasyMatchUp import EspnFantasyMatchUp
 from utils.get_logger import get_logger
-from utils.app_utils import get_cookies_league_params, parameter_checks
+from utils.app_utils import get_cookies_league_params, parameter_checks, format_sub_dct
 
 logger = get_logger(__name__)
 
 
 # @st.cache
-def get_round_params():
+def get_round_params(espnfantasyleague_obj):
     round = st.number_input(label="Round", min_value=1,
                             max_value=None, value=1, step=1, help=ROUND_HELP)
     start_date = st.date_input(
@@ -22,11 +23,20 @@ def get_round_params():
         help="The end date of the simulation/analysis",
         format="YYYY-MM-DD"
     )
-    home_team = st.text_input(
-        label="Home team", help="Abbreviation of the home team")
-    away_team = st.text_input(
-        label="Away team", help="Abbreviation of the away team")
-    use_current_score = st.toggle(label="Use current score", help="")
+    display_teams_dict = {
+        f"{espnfantasyleague_obj.team_id_name_dict[k]} ({v})": v
+        for k, v in espnfantasyleague_obj.team_id_abbr_dict.items()
+    }
+    teams = display_teams_dict.keys()
+    home_team = st.selectbox(label="Home team", options=teams, index=None)
+    away_team = st.selectbox(label="Away team", options=teams, index=None)
+    if home_team is not None and away_team is not None:
+        home_team = display_teams_dict[home_team]
+        away_team = display_teams_dict[away_team]
+    use_current_score = st.toggle(
+        label="Use current score", value=True,
+        help="Use the actual score up to this moment for an on-going match-up"
+    )
     # valid values: season average, last 7 days average, last 15 days average,
     # last 30 days average, season's projections, previous season average
     stat_types = [
@@ -53,16 +63,19 @@ def get_round_params():
 def main():
     st.title("Head-to-head pre-round analysis for ESPN NBA Fantasy leagues")
     app_description = """
-    This app helps the user to prepare for an upcoming match-up between two fantasy
-    teams. This is based on a league with *Head to Head Each Category* scoring type
-    and 9 statistical categories (FG%, FT%, 3PM, REB, AST, STL, BLK, TO, PTS).
+    This app helps the user to prepare for an upcoming match-up between two
+    fantasy teams. This is based on a league with *Head to Head Each Category*
+    scoring type and 9 statistical categories (FG%, FT%, 3PM, REB, AST, STL,
+    BLK, TO, PTS).
 
     * It compares their schedule (number of starter players and unused players)
     * It compares the teams' historic stats up to this round
-    * Simulates/projects the match-up based on the players' average stats and schedule.
+    * Simulates/projects the match-up based on the players' average stats and
+        schedule.
     * Allows for scenarios, such as replace player X with player Y
 
-    Further details on [this Medium blog post](https://g-giasemidis.medium.com/nba-fantasy-analytics-with-python-on-epsn-f03f10a60187).
+    Further details on
+    [this Medium blog post](https://g-giasemidis.medium.com/nba-fantasy-analytics-with-python-on-epsn-f03f10a60187).
 
     Use this *public* league id `10149515` for trying out app.
     No need for `swid` and `espn_s2` cookies. This league is based on the same
@@ -77,36 +90,81 @@ def main():
         st.markdown(app_description)
 
     cookies, league_settings = get_cookies_league_params()
-    with st.form(key='my_form'):
-        round_params = get_round_params()
-        submit_button = st.form_submit_button(label='Submit')
 
-    use_current_score = round_params.pop("use_current_score")
-    if submit_button:
-        parameter_checks(
+    if league_settings["league_id"] != "":
+        league_params_ok = parameter_checks(
             swid=cookies["swid"],
             espn_s2=cookies["espn_s2"],
             league_id=league_settings["league_id"]
         )
-        with st.spinner('We are doing the clever stuff'):
-            espn = EspnFantasyMatchUp(cookies, league_settings, **round_params)
-            h2h_stat_df = espn.h2h_season_stats_comparison().astype("O")
-            schedule_df = espn.compare_schedules().astype("O")
-            sim_df = espn.simulation(use_current_score=use_current_score)
+        if league_params_ok:
+            espn = EspnFantasyLeague(cookies, league_settings)
 
-        st.text("Navigate across the tabs to access the different analysis tables")
-        tab1, tab2, tab3 = st.tabs(
-            ["H2H season stats comparison", "Schedule Comparison", "Simulation"]
-        )
+        with st.form(key='my_form'):
+            round_params = get_round_params(espn)
+            with st.expander("Scenario subs", expanded=False):
+                st.write(
+                    """Explore what if scenarios; adding and/or removing
+                    players and the impact on schedule and simulated match-up"""
+                )
+                home_player_add = st.text_area(
+                    "Home players to add", value="", help=SCENARIO_HELP)
+                home_player_rmv = st.text_area(
+                    "Home players to remove", value="", help=SCENARIO_HELP)
+                away_player_add = st.text_area(
+                    "Away players to add", value="", help=SCENARIO_HELP)
+                away_player_rmv = st.text_area(
+                    "Away players to remove", value="", help=SCENARIO_HELP)
+                home_scn_players = {
+                    "add": format_sub_dct(home_player_add),
+                    "remove": format_sub_dct(home_player_rmv),
+                }
+                away_scn_players = {
+                    "add": format_sub_dct(away_player_add),
+                    "remove": format_sub_dct(away_player_rmv),
+                }
+            submit_button = st.form_submit_button(label='Submit')
 
-        with tab1:
-            st.dataframe(h2h_stat_df)
+        if submit_button:
+            if (round_params["home_team"] is not None) \
+                    and (round_params["away_team"] is not None):
+                if round_params["home_team"] == round_params["away_team"]:
+                    st.warning("Select different teams", icon="⚠️")
+                else:
+                    with st.spinner('We are doing the clever stuff'):
+                        use_current_score = round_params.pop(
+                            "use_current_score")
+                        espn = EspnFantasyMatchUp(
+                            cookies, league_settings, **round_params,
+                            home_scn_players=home_scn_players,
+                            away_scn_players=away_scn_players
+                        )
+                        h2h_stat_df = (
+                            espn.h2h_season_stats_comparison().astype("O")
+                        )
+                        schedule_df = espn.compare_schedules().astype("O")
+                        sim_df = espn.simulation(
+                            use_current_score=use_current_score)
 
-        with tab2:
-            st.dataframe(schedule_df)
+                    st.text(
+                        "Navigate across the tabs to access the different "
+                        "analysis tables"
+                    )
+                    tab1, tab2, tab3 = st.tabs(
+                        ["H2H season stats comparison",
+                            "Schedule Comparison", "Simulation"]
+                    )
 
-        with tab3:
-            st.dataframe(sim_df)
+                    with tab1:
+                        st.dataframe(h2h_stat_df)
+
+                    with tab2:
+                        st.dataframe(schedule_df)
+
+                    with tab3:
+                        st.dataframe(sim_df)
+            else:
+                st.warning("Select home and away teams", icon="⚠️")
 
     return
 
