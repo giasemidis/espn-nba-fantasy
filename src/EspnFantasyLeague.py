@@ -54,10 +54,10 @@ class EspnFantasyLeague():
         self.season = league_settings["season"]
         self.cookies = cookies
         url_fantasy_league = (
-            "http://fantasy.espn.com/apis/v3/games/fba/seasons/{}/"
+            "https://lm-api-reads.fantasy.espn.com/apis/v3/games/fba/seasons/{}/"
             + "segments/0/leagues/{}"
         )
-        url_nba = "http://fantasy.espn.com/apis/v3/games/fba/seasons/{}"
+        url_nba = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/fba/seasons/{}"
         self.url_fantasy = url_fantasy_league.format(
             self.season, self.league_id)
         self.url_nba = url_nba.format(self.season)
@@ -95,7 +95,8 @@ class EspnFantasyLeague():
                          headers=headers)
 
         if r.status_code != 200:
-            raise ValueError('Error fetching the teams data')
+            logger.error(f"Error fetching the teams data {r.text}")
+            r.raise_for_status()
         data = r.json()
         return data
 
