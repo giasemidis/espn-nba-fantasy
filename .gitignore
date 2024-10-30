@@ -1,2 +1,5 @@
 **/__pycache__/*
 **/.ipynb_checkpoints/*
+notebooks-dev/compare-scoring-period-inputs.ipynb
+notebooks-dev/investigate-public-leagues.ipynb
+notebooks-dev/scan-for-public-leagues.ipynb

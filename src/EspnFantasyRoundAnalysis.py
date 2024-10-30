@@ -125,7 +125,7 @@ class EspnFantasyRoundAnalysis(EspnFantasyLeague):
 
         aggr_tbl = (
             scores_df.rename(index=self.team_abbr_name_dict)
-            .sort_values('Wins', ascending=False)
+            .sort_values(['Wins', "Avg Score"], ascending=False)
         )
         self.aggr_round_scores = aggr_tbl
         return aggr_tbl
