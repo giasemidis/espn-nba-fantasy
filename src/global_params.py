@@ -1,4 +1,4 @@
-CURRENT_SEASON = 2025
+CURRENT_SEASON = 2026
 DTYPES = {
     "FG%": float,
     "FT%": float,
