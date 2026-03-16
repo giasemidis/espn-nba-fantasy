@@ -5,5 +5,5 @@ pandas
 pre-commit
 pytz
 scipy
-streamlit
+streamlit>=1.25.0
 altair<5
