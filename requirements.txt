@@ -6,3 +6,4 @@ pre-commit
 pytz
 scipy
 streamlit
+altair<5
